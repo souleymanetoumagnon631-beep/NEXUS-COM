@@ -1,1 +1,679 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEXUS — Connexion</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="assets/css/variables.css">
+  <style>
+    /* ── LOGIN PAGE ── */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-image:
+        radial-gradient(ellipse 80% 50% at 20% 20%, rgba(124,111,255,0.1) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(201,168,76,0.06) 0%, transparent 55%);
+    }
+    .login-wrap {
+      width: 100%;
+      max-width: 420px;
+      padding: 24px;
+    }
 
+    /* Logo */
+    .login-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 36px;
+    }
+    .login-logo-icon {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, #7c6fff, #a78bfa, #c9a84c);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 20px rgba(124,111,255,0.4);
+    }
+    .login-logo-name {
+      font-size: 1.6rem; font-weight: 900; letter-spacing: .08em;
+      background: linear-gradient(135deg, #fff 20%, #a78bfa 60%, #c9a84c);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+
+    /* Card */
+    .login-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px 32px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      position: relative;
+      overflow: hidden;
+    }
+    .login-card::before {
+      content: '';
+      position: absolute; top: 0; left: 20%; right: 20%; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(124,111,255,0.5), transparent);
+    }
+
+    /* Tabs */
+    .login-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 28px;
+    }
+    .login-tab {
+      flex: 1; padding: 9px; border-radius: 8px;
+      font-size: .875rem; font-weight: 600;
+      border: none; cursor: pointer;
+      background: transparent; color: var(--text2);
+      transition: all .2s;
+    }
+    .login-tab.active {
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      color: #fff;
+      box-shadow: 0 2px 10px rgba(124,111,255,0.3);
+    }
+
+    /* Form */
+    .login-title {
+      font-size: 1.2rem; font-weight: 800;
+      margin-bottom: 6px; letter-spacing: -.01em;
+    }
+    .login-sub {
+      font-size: .82rem; color: var(--text2);
+      margin-bottom: 24px; line-height: 1.6;
+    }
+    .form-group {
+      display: flex; flex-direction: column; gap: 6px;
+      margin-bottom: 16px;
+    }
+    .form-label {
+      font-size: .72rem; color: var(--text2);
+      font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+    }
+    .form-input {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      padding: 12px 14px;
+      font-size: .9rem;
+      outline: none;
+      width: 100%;
+      font-family: inherit;
+      transition: all .2s;
+    }
+    .form-input:focus {
+      border-color: var(--accent);
+      background: var(--surface3);
+      box-shadow: 0 0 0 3px rgba(124,111,255,0.13);
+    }
+    .form-input::placeholder { color: var(--text3); }
+
+    /* Password toggle */
+    .input-wrap { position: relative; }
+    .input-wrap .form-input { padding-right: 44px; }
+    .toggle-pwd {
+      position: absolute; right: 12px; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none; cursor: pointer;
+      color: var(--text3); padding: 4px;
+      transition: color .2s;
+    }
+    .toggle-pwd:hover { color: var(--text); }
+
+    /* Submit */
+    .btn-login {
+      width: 100%; padding: 14px;
+      background: linear-gradient(135deg, #7c6fff, #8b5cf6);
+      color: #fff; font-size: .95rem; font-weight: 700;
+      border: none; border-radius: 10px; cursor: pointer;
+      box-shadow: 0 4px 20px rgba(124,111,255,0.4);
+      transition: all .25s; margin-top: 8px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-login:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(124,111,255,0.55); }
+    .btn-login:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+    /* Loader spinner */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Message */
+    .login-msg {
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: .83rem;
+      margin-bottom: 16px;
+      display: none;
+      line-height: 1.5;
+    }
+    .login-msg.err {
+      background: rgba(248,113,113,0.09);
+      border: 1px solid rgba(248,113,113,0.25);
+      color: #f87171;
+    }
+    .login-msg.ok {
+      background: rgba(52,211,153,0.09);
+      border: 1px solid rgba(52,211,153,0.25);
+      color: #34d399;
+    }
+    .login-msg.inf {
+      background: rgba(96,165,250,0.09);
+      border: 1px solid rgba(96,165,250,0.25);
+      color: #60a5fa;
+    }
+
+    /* Forgot */
+    .forgot-link {
+      text-align: right; margin-top: -8px; margin-bottom: 16px;
+    }
+    .forgot-link a {
+      font-size: .78rem; color: var(--accent2);
+      text-decoration: none; cursor: pointer;
+    }
+    .forgot-link a:hover { text-decoration: underline; }
+
+    /* Divider */
+    .divider {
+      display: flex; align-items: center; gap: 12px;
+      margin: 20px 0; color: var(--text3); font-size: .78rem;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1;
+      height: 1px; background: var(--border);
+    }
+
+    /* Plans */
+    .plans-grid {
+      display: flex; flex-direction: column; gap: 10px;
+      margin-bottom: 20px;
+    }
+    .plan-card {
+      border: 2px solid var(--border);
+      border-radius: 12px; padding: 14px 16px;
+      cursor: pointer; transition: all .2s;
+      position: relative;
+    }
+    .plan-card:hover { border-color: var(--accent); background: rgba(124,111,255,0.04); }
+    .plan-card.selected { border-color: var(--accent); background: rgba(124,111,255,0.08); }
+    .plan-card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .plan-name { font-weight: 700; font-size: .9rem; }
+    .plan-price { font-weight: 800; font-size: .9rem; color: var(--accent2); }
+    .plan-desc { font-size: .74rem; color: var(--text2); }
+    .plan-badge {
+      position: absolute; top: -8px; right: 12px;
+      background: linear-gradient(135deg, #c9a84c, #fbbf24);
+      color: #000; font-size: .62rem; font-weight: 800;
+      padding: 2px 8px; border-radius: 99px; letter-spacing: .05em;
+    }
+    .plan-radio {
+      position: absolute; top: 14px; left: 16px;
+      width: 16px; height: 16px;
+      border: 2px solid var(--border); border-radius: 50%;
+      transition: all .2s;
+    }
+    .plan-card.selected .plan-radio {
+      border-color: var(--accent);
+      background: var(--accent);
+      box-shadow: 0 0 0 3px rgba(124,111,255,0.2);
+    }
+    .plan-card-inner { padding-left: 28px; }
+
+    /* Trial badge */
+    .trial-notice {
+      text-align: center;
+      font-size: .78rem; color: var(--text3);
+      margin-top: 16px; line-height: 1.6;
+    }
+    .trial-notice strong { color: var(--green); }
+
+    /* Back link */
+    .back-link {
+      text-align: center; margin-top: 20px;
+      font-size: .8rem; color: var(--text3);
+    }
+    .back-link a {
+      color: var(--accent2); text-decoration: none; cursor: pointer;
+    }
+    .back-link a:hover { text-decoration: underline; }
+
+    /* Toast */
+    #toast-login {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px; padding: 12px 18px;
+      font-size: .84rem; box-shadow: 0 6px 30px rgba(0,0,0,0.5);
+      opacity: 0; transform: translateX(80px);
+      transition: all .35s; pointer-events: none; z-index: 999;
+    }
+    #toast-login.show { opacity: 1; transform: translateX(0); }
+  </style>
+</head>
+<body>
+
+<div class="login-wrap">
+  <!-- Logo -->
+  <div class="login-logo">
+    <div class="login-logo-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+      </svg>
+    </div>
+    <div class="login-logo-name">NEXUS</div>
+  </div>
+
+  <!-- Card -->
+  <div class="login-card">
+
+    <!-- Tabs -->
+    <div class="login-tabs">
+      <button class="login-tab active" id="tab-login" onclick="switchTab('login')">Connexion</button>
+      <button class="login-tab" id="tab-signup" onclick="switchTab('signup')">S'abonner</button>
+    </div>
+
+    <!-- Message global -->
+    <div class="login-msg" id="login-msg"></div>
+
+    <!-- ══ PANEL : CONNEXION ══ -->
+    <div id="panel-login">
+      <div class="login-title">Bon retour 👋</div>
+      <div class="login-sub">Connectez-vous à votre espace NEXUS.</div>
+
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email" id="login-email"
+          placeholder="vous@exemple.com" autocomplete="email">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Mot de passe</label>
+        <div class="input-wrap">
+          <input class="form-input" type="password" id="login-password"
+            placeholder="••••••••" autocomplete="current-password">
+          <button class="toggle-pwd" onclick="togglePwd('login-password', this)" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="forgot-link">
+        <a onclick="switchTab('forgot')">Mot de passe oublié ?</a>
+      </div>
+
+      <button class="btn-login" id="btn-login" onclick="handleLogin()">
+        <span id="btn-login-text">Se connecter</span>
+        <div class="spinner" id="spinner-login"></div>
+      </button>
+
+      <div class="back-link" style="margin-top:16px">
+        Pas encore abonné ? <a onclick="switchTab('signup')">Essayer gratuitement</a>
+      </div>
+    </div>
+
+    <!-- ══ PANEL : INSCRIPTION ══ -->
+    <div id="panel-signup" style="display:none">
+      <div class="login-title">Commencez gratuitement ✨</div>
+      <div class="login-sub">7 jours d'essai sans carte bancaire.</div>
+
+      <!-- Plans -->
+      <div class="plans-grid" id="plans-grid">
+        <div class="plan-card" id="plan-trial" onclick="selectPlan('trial')">
+          <div class="plan-radio"></div>
+          <div class="plan-card-inner">
+            <div class="plan-card-header">
+              <div class="plan-name">Essai Gratuit</div>
+              <div class="plan-price">0 FCFA</div>
+            </div>
+            <div class="plan-desc">7 jours — Accès complet à toutes les fonctionnalités</div>
+          </div>
+        </div>
+
+        <div class="plan-card selected" id="plan-monthly" onclick="selectPlan('monthly')">
+          <div class="plan-radio"></div>
+          <div class="plan-card-inner">
+            <div class="plan-card-header">
+              <div class="plan-name">Mensuel</div>
+              <div class="plan-price">5 000 FCFA/mois</div>
+            </div>
+            <div class="plan-desc">Accès complet, résiliable à tout moment</div>
+          </div>
+        </div>
+
+        <div class="plan-card" id="plan-annual" onclick="selectPlan('annual')">
+          <div class="plan-badge">MEILLEUR PRIX</div>
+          <div class="plan-radio"></div>
+          <div class="plan-card-inner">
+            <div class="plan-card-header">
+              <div class="plan-name">Annuel</div>
+              <div class="plan-price">40 000 FCFA/an</div>
+            </div>
+            <div class="plan-desc">Économisez 20 000 FCFA · 3 333 FCFA/mois</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Nom complet</label>
+        <input class="form-input" type="text" id="signup-name"
+          placeholder="Votre nom" autocomplete="name">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email" id="signup-email"
+          placeholder="vous@exemple.com" autocomplete="email">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Mot de passe</label>
+        <div class="input-wrap">
+          <input class="form-input" type="password" id="signup-password"
+            placeholder="Minimum 8 caractères" autocomplete="new-password">
+          <button class="toggle-pwd" onclick="togglePwd('signup-password', this)" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <button class="btn-login" id="btn-signup" onclick="handleSignup()">
+        <span id="btn-signup-text">Commencer maintenant</span>
+        <div class="spinner" id="spinner-signup"></div>
+      </button>
+
+      <div class="trial-notice">
+        <strong>7 jours gratuits</strong> pour tester NEXUS.<br>
+        Aucune carte bancaire requise pour l'essai.
+      </div>
+
+      <div class="back-link">
+        Déjà abonné ? <a onclick="switchTab('login')">Se connecter</a>
+      </div>
+    </div>
+
+    <!-- ══ PANEL : MOT DE PASSE OUBLIÉ ══ -->
+    <div id="panel-forgot" style="display:none">
+      <div class="login-title">Réinitialiser 🔐</div>
+      <div class="login-sub">Un lien vous sera envoyé par email.</div>
+
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email" id="forgot-email"
+          placeholder="vous@exemple.com">
+      </div>
+
+      <button class="btn-login" id="btn-forgot" onclick="handleForgot()">
+        <span id="btn-forgot-text">Envoyer le lien</span>
+        <div class="spinner" id="spinner-forgot"></div>
+      </button>
+
+      <div class="back-link">
+        <a onclick="switchTab('login')">← Retour à la connexion</a>
+      </div>
+    </div>
+
+  </div><!-- /card -->
+</div><!-- /wrap -->
+
+<div id="toast-login"></div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/auth.js"></script>
+<script>
+// ══════════════════════════════════════════
+//   LOGIN PAGE — Logique UI
+// ══════════════════════════════════════════
+
+let selectedPlan = 'monthly';
+
+// ── Init ──
+(async () => {
+  // Message depuis sessionStorage (ex: abonnement expiré)
+  const msg = sessionStorage.getItem('nexus_msg');
+  if (msg) {
+    showMsg(msg, 'inf');
+    sessionStorage.removeItem('nexus_msg');
+  }
+
+  // Déjà connecté → dashboard
+  await Auth.guardLogin();
+})();
+
+// ── Tabs ──
+function switchTab(tab) {
+  hideMsg();
+  const panels = { login: 'panel-login', signup: 'panel-signup', forgot: 'panel-forgot' };
+  const tabs   = { login: 'tab-login', signup: 'tab-signup' };
+
+  Object.values(panels).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  const panel = document.getElementById(panels[tab]);
+  if (panel) panel.style.display = 'block';
+
+  Object.values(tabs).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active');
+  });
+  if (tabs[tab]) document.getElementById(tabs[tab])?.classList.add('active');
+}
+
+// ── Sélectionner un plan ──
+function selectPlan(plan) {
+  selectedPlan = plan;
+  ['trial', 'monthly', 'annual'].forEach(p => {
+    document.getElementById(`plan-${p}`)?.classList.remove('selected');
+  });
+  document.getElementById(`plan-${plan}`)?.classList.add('selected');
+}
+
+// ── Toggle password visibility ──
+function togglePwd(inputId, btn) {
+  const input = document.getElementById(inputId);
+  const isText = input.type === 'text';
+  input.type = isText ? 'password' : 'text';
+  btn.innerHTML = isText
+    ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'
+    : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+}
+
+// ── Messages ──
+function showMsg(text, type = 'err') {
+  const el = document.getElementById('login-msg');
+  el.textContent = text;
+  el.className = `login-msg ${type}`;
+  el.style.display = 'block';
+}
+function hideMsg() {
+  const el = document.getElementById('login-msg');
+  el.style.display = 'none';
+}
+
+// ── Loader ──
+function setLoading(btnId, spinnerId, loading) {
+  const btn     = document.getElementById(btnId);
+  const spinner = document.getElementById(spinnerId);
+  const text    = document.getElementById(`${btnId}-text`);
+  btn.disabled          = loading;
+  spinner.style.display = loading ? 'block' : 'none';
+  text.style.opacity    = loading ? 0 : 1;
+}
+
+// ── Toast ──
+function showToast(msg) {
+  const el = document.getElementById('toast-login');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// ── CONNEXION ──
+async function handleLogin() {
+  hideMsg();
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+
+  if (!email)    return showMsg('Email requis.');
+  if (!password) return showMsg('Mot de passe requis.');
+
+  setLoading('btn-login', 'spinner-login', true);
+
+  try {
+    await Auth.login(email, password);
+
+    // Vérifier abonnement
+    const sub = await Auth.getSubscription();
+    if (!sub || !sub.is_active) {
+      setLoading('btn-login', 'spinner-login', false);
+      return showMsg('Votre abonnement a expiré. Renouvelez pour continuer.', 'err');
+    }
+
+    showMsg('Connexion réussie ! Redirection...', 'ok');
+    setTimeout(() => {
+      window.location.href = NEXUS.app.dashboard_url;
+    }, 800);
+
+  } catch (err) {
+    setLoading('btn-login', 'spinner-login', false);
+    const msgs = {
+      'Invalid login credentials': 'Email ou mot de passe incorrect.',
+      'Email not confirmed':        'Confirmez votre email avant de vous connecter.',
+      'Too many requests':          'Trop de tentatives. Réessayez dans quelques minutes.',
+    };
+    showMsg(msgs[err.message] || `Erreur : ${err.message}`);
+  }
+}
+
+// ── INSCRIPTION ──
+async function handleSignup() {
+  hideMsg();
+  const name     = document.getElementById('signup-name').value.trim();
+  const email    = document.getElementById('signup-email').value.trim();
+  const password = document.getElementById('signup-password').value;
+
+  if (!name)                    return showMsg('Nom requis.');
+  if (!email)                   return showMsg('Email requis.');
+  if (password.length < 8)      return showMsg('Mot de passe minimum 8 caractères.');
+
+  setLoading('btn-signup', 'spinner-signup', true);
+
+  try {
+    // 1. Créer le compte Supabase
+    await Auth.signup(email, password, name);
+
+    if (selectedPlan === 'trial') {
+      // Trial → direct dashboard
+      showMsg('Compte créé ! Bienvenue dans NEXUS 🎉', 'ok');
+      setTimeout(() => {
+        window.location.href = NEXUS.app.dashboard_url;
+      }, 1200);
+    } else {
+      // Plan payant → redirect PayTech
+      showMsg('Compte créé ! Redirection vers le paiement...', 'ok');
+      await redirectToPayTech(email, name, selectedPlan);
+    }
+
+  } catch (err) {
+    setLoading('btn-signup', 'spinner-signup', false);
+    const msgs = {
+      'User already registered': 'Cet email est déjà utilisé. Connectez-vous.',
+      'Password should be at least 6 characters': 'Mot de passe trop court.',
+    };
+    showMsg(msgs[err.message] || `Erreur : ${err.message}`);
+  }
+}
+
+// ── MOT DE PASSE OUBLIÉ ──
+async function handleForgot() {
+  hideMsg();
+  const email = document.getElementById('forgot-email').value.trim();
+  if (!email) return showMsg('Email requis.');
+
+  setLoading('btn-forgot', 'spinner-forgot', true);
+
+  try {
+    await Auth.resetPassword(email);
+    showMsg('Lien envoyé ! Vérifiez votre boîte email.', 'ok');
+    setLoading('btn-forgot', 'spinner-forgot', false);
+  } catch (err) {
+    setLoading('btn-forgot', 'spinner-forgot', false);
+    showMsg(`Erreur : ${err.message}`);
+  }
+}
+
+// ── REDIRECT PAYTECH ──
+async function redirectToPayTech(email, name, plan) {
+  const planConfig = NEXUS.plans[plan];
+  const ref = `NEXUS-${plan.toUpperCase()}-${Date.now()}`;
+
+  try {
+    const response = await fetch('https://paytech.sn/api/payment/request-payment', {
+      method: 'POST',
+      headers: {
+        'Accept':        'application/json',
+        'Content-Type':  'application/json',
+        'API_KEY':       NEXUS.paytech.API_KEY,
+        'API_SECRET':    NEXUS.paytech.API_SECRET,
+      },
+      body: JSON.stringify({
+        item_name:    `NEXUS ${planConfig.name}`,
+        item_price:   planConfig.price_fcfa,
+        currency:     'XOF',
+        ref_command:  ref,
+        ipn_url:      `${window.location.origin}/api/paytech-webhook`,
+        success_url:  `${window.location.origin}/success.html?plan=${plan}&ref=${ref}`,
+        cancel_url:   `${window.location.origin}/login.html?cancelled=true`,
+        custom_field: JSON.stringify({ email, name, plan, ref }),
+        env:          NEXUS.paytech.ENV,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (data.success === 1 && data.redirect_url) {
+      window.location.href = data.redirect_url;
+    } else {
+      throw new Error(data.errors?.join(', ') || 'Erreur PayTech');
+    }
+
+  } catch (err) {
+    setLoading('btn-signup', 'spinner-signup', false);
+    showMsg(`Erreur paiement : ${err.message}. Contactez le support.`);
+  }
+}
+
+// ── Entrée clavier ──
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const panel = document.getElementById('panel-login');
+  if (panel?.style.display !== 'none') handleLogin();
+});
+</script>
+</body>
+</html>
