@@ -629,9 +629,14 @@ async function handleForgot() {
 
 // ── REDIRECT PAYTECH ──
 async function redirectToPayTech(email, name, plan) {
-  const planConfig = NEXUS.plans[plan];
-  const ref = `NEXUS-${plan.toUpperCase()}-${Date.now()}`;
-
+  try {
+    await PayTech.paySignup(email, name, plan);
+  } catch (err) {
+    setLoading('btn-signup', 'spinner-signup', false);
+    showMsg(`Erreur paiement : ${err.message}. Contactez le support.`);
+  }
+}
+  
   try {
     const response = await fetch('https://paytech.sn/api/payment/request-payment', {
       method: 'POST',
