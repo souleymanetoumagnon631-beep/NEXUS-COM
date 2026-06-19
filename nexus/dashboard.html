@@ -1288,6 +1288,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/js/config.js"></script>
 <script src="assets/js/auth.js"></script>
+<script src="assets/js/paytech.js"></script>
 <script src="assets/js/db.js"></script>
 <script src="assets/js/state.js"></script>
 <script src="assets/js/engine.js"></script>
@@ -1307,11 +1308,9 @@
 <script src="assets/js/pages/idees.js"></script>
 <script src="assets/js/pages/relances.js"></script>
 <script src="assets/js/pages/marketing.js"></script>
-<script src="assets/js/pages/compte.js"></script>
 <script src="assets/js/app.js"></script>
 
 <script>
-// ── UI handlers dashboard ──
 function clearDashFilter() {
   const sel = $('dash-product-filter');
   if (sel) sel.value = '';
@@ -1319,7 +1318,6 @@ function clearDashFilter() {
   Pages.dashboard?.render?.();
 }
 
-// ── User menu ──
 function toggleUserMenu() {
   $('user-menu')?.classList.toggle('open');
 }
@@ -1329,7 +1327,6 @@ document.addEventListener('click', e => {
   }
 });
 
-// ── Logout ──
 async function handleLogout() {
   $('user-menu')?.classList.remove('open');
   await Auth.logout();
