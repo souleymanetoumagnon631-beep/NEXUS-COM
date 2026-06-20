@@ -3,8 +3,8 @@
 // ══════════════════════════════════════════
 
 // ── SUPABASE ──
-const SUPABASE_URL = 'https://XXXXXX.supabase.co'; // ← remplace par ton URL
-const SUPABASE_ANON_KEY = 'eyJhbGci...';           // ← remplace par ton anon key
+const SUPABASE_URL = 'https://https://zewxinjatbyeelqcjntk.supabase.co'; //
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpld3hpbmphdGJ5ZWVscWNqbnRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NTA2NTAsImV4cCI6MjA5NzEyNjY1MH0.FZVHhpStQZZvQDHaoyXdIGaHX-bNgfPak7CpKR-sELM';           //
 
 // ── PAYTECH ──
 const PAYTECH_CONFIG = {
