@@ -460,6 +460,16 @@ let selectedPlan = 'monthly';
     showMsg(msg, 'inf');
     sessionStorage.removeItem('nexus_msg');
   }
+  
+  // Lire les paramètres URL venant de la landing page
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('signup') === 'true') {
+    switchTab('signup');
+    const plan = params.get('plan');
+    if (plan && ['trial','monthly','annual'].includes(plan)) {
+      selectPlan(plan);
+    }
+  }
 
   // Déjà connecté → dashboard
   await Auth.guardLogin();
