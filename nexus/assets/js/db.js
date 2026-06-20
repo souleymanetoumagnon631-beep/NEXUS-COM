@@ -831,21 +831,235 @@ const DB = {
     },
   },
 
-  // ══════════════════════════════════════════
-  //   EXPORT JSON (backup complet)
-  // ══════════════════════════════════════════
-  async exportBackup() {
-    const all = await this.loadAll();
-    const blob = new Blob(
-      [JSON.stringify({ ...all, exportedAt: new Date().toISOString(), version: '1.0' }, null, 2)],
-      { type: 'application/json' }
-    );
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `nexus_backup_${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-  },
-};
+// ══════════════════════════════════════════
+//   EXPORT JSON (backup complet)
+// ══════════════════════════════════════════
+async exportBackup() {
+
+  const all = await this.loadAll();
+
+  const cleanData = structuredClone(all);
+
+  // Nettoyage des objets liés ajoutés par les SELECT relationnels
+  cleanData.sales?.forEach(r => {
+    delete r.product;
+    delete r.client;
+  });
+
+  cleanData.livraisons?.forEach(r => {
+    delete r.product;
+    delete r.client;
+  });
+
+  cleanData.projects?.forEach(r => {
+    delete r.product;
+  });
+
+  cleanData.tasks?.forEach(r => {
+    delete r.project;
+  });
+
+  cleanData.scripts?.forEach(r => {
+    delete r.angle;
+  });
+
+  cleanData.copies?.forEach(r => {
+    delete r.angle;
+  });
+
+  cleanData.offers?.forEach(r => {
+    delete r.product;
+  });
+
+  const blob = new Blob(
+    [
+      JSON.stringify(
+        {
+          ...cleanData,
+          exportedAt: new Date().toISOString(),
+          version: '1.0'
+        },
+        null,
+        2
+      )
+    ],
+    {
+      type: 'application/json'
+    }
+  );
+
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `nexus_backup_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+
+  URL.revokeObjectURL(a.href);
+},
+
+// ══════════════════════════════════════════
+//   IMPORT JSON (fusion intelligente)
+// ══════════════════════════════════════════
+async importBackup() {
+
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+
+  input.onchange = async (e) => {
+
+    try {
+
+      const file = e.target.files?.[0];
+
+      if (!file) return;
+
+      const backup = JSON.parse(
+        await file.text()
+      );
+
+      const tables = [
+
+        ['products', 'products'],
+        ['clients', 'clients'],
+
+        ['projects', 'projects'],
+        ['ideas', 'ideas'],
+
+        ['fixed_expenses', 'expenses'],
+
+        ['marketing_angles', 'angles'],
+
+        ['sales', 'sales'],
+        ['livraisons', 'livraisons'],
+
+        ['tasks', 'tasks'],
+
+        ['marketing_scripts', 'scripts'],
+        ['marketing_copies', 'copies'],
+
+        ['saved_offers', 'offers']
+
+      ];
+
+      let totalImported = 0;
+
+      for (const [tableName, backupKey] of tables) {
+
+        const rows = backup[backupKey];
+
+        if (!Array.isArray(rows) || rows.length === 0)
+          continue;
+
+        const cleanedRows = rows.map(row => {
+
+          const copy = { ...row };
+
+          delete copy.product;
+          delete copy.client;
+          delete copy.angle;
+          delete copy.project;
+
+          return {
+            ...copy,
+            user_id: DB.userId()
+          };
+
+        });
+
+        const { error } = await NEXUS.supabase
+          .from(tableName)
+          .upsert(cleanedRows, {
+            onConflict: 'id'
+          });
+
+        if (error)
+          throw error;
+
+        totalImported += cleanedRows.length;
+      }
+
+      alert(
+        `Import terminé avec succès.\n\n${totalImported} éléments importés ou mis à jour.`
+      );
+
+      location.reload();
+
+    } catch (err) {
+
+      console.error(err);
+
+      alert(
+        'Erreur lors de l’import :\n\n' +
+        (err.message || err)
+      );
+    }
+  };
+
+  input.click();
+},
+
+// ══════════════════════════════════════════
+//   EXPORT EXCEL (CSV compatible Excel)
+// ══════════════════════════════════════════
+async exportExcel() {
+
+  const all = await this.loadAll();
+
+  const rows = [];
+
+  Object.entries(all).forEach(([section, data]) => {
+
+    rows.push([section.toUpperCase()]);
+    rows.push([]);
+
+    if (Array.isArray(data)) {
+
+      data.forEach(item => {
+
+        const clean = { ...item };
+
+        delete clean.product;
+        delete clean.client;
+        delete clean.angle;
+        delete clean.project;
+
+        rows.push([
+          JSON.stringify(clean)
+        ]);
+      });
+    }
+
+    rows.push([]);
+  });
+
+  const csv = rows
+    .map(row =>
+      row
+        .map(cell =>
+          `"${String(cell || '').replace(/"/g, '""')}"`
+        )
+        .join(';')
+    )
+    .join('\n');
+
+  const blob = new Blob(
+    [csv],
+    {
+      type: 'text/csv;charset=utf-8;'
+    }
+  );
+
+  const a = document.createElement('a');
+
+  a.href = URL.createObjectURL(blob);
+
+  a.download =
+    `nexus_export_${new Date().toISOString().split('T')[0]}.csv`;
+
+  a.click();
+
+  URL.revokeObjectURL(a.href);
+},
 
 // ── Export global ──
 window.DB = DB;
