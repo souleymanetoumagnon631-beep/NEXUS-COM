@@ -50,8 +50,7 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ── EXPORT GLOBAL ──
 window.NEXUS = {
-  supabase:   supabaseClient,
-  plans:      PLANS,
-  app:        APP_CONFIG,
-  paytech:    PAYTECH_CONFIG,
+  supabase: supabaseClient,
+  plans: PLANS,
+  app: APP_CONFIG
 };
