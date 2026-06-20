@@ -6,14 +6,6 @@
 const SUPABASE_URL = 'https://zewxinjatbyeelqcjntk.supabase.co'; //
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpld3hpbmphdGJ5ZWVscWNqbnRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NTA2NTAsImV4cCI6MjA5NzEyNjY1MH0.FZVHhpStQZZvQDHaoyXdIGaHX-bNgfPak7CpKR-sELM';           //
 
-// ── PAYTECH ──
-const PAYTECH_CONFIG = {
-  API_KEY:    'TA_API_KEY_ICI',     // ← remplace
-  API_SECRET: 'TA_API_SECRET_ICI', // ← remplace
-  BASE_URL:   'https://paytech.sn/api/payment/request-payment',
-  ENV:        'prod', // 'test' ou 'prod'
-};
-
 // ── PLANS & PRIX ──
 const PLANS = {
   trial: {
