@@ -8,56 +8,38 @@ const PayTech = {
   // ══════════════════════════════════════
   //   CRÉER UNE DEMANDE DE PAIEMENT
   // ══════════════════════════════════════
-  async requestPayment({ plan, customField = {}, successPath = '/success.html', cancelPath = '/login.html' }) {
+async requestPayment({ plan, customField = {} }) {
     const planConfig = NEXUS.plans[plan];
     if (!planConfig) throw new Error('Plan invalide.');
     if (planConfig.price_fcfa <= 0) throw new Error('Ce plan ne nécessite pas de paiement.');
 
-    const ref = this._generateRef(plan);
-
-    const body = {
-      item_name:    `NEXUS — ${planConfig.name}`,
-      item_price:   planConfig.price_fcfa,
-      currency:     'XOF',
-      ref_command:  ref,
-      command_name: `Abonnement NEXUS ${planConfig.name}`,
-      env:          NEXUS.paytech.ENV,
-      ipn_url:      `${SUPABASE_URL}/functions/v1/paytech-webhook`,
-      success_url:  `${window.location.origin}${successPath}?plan=${plan}&ref=${ref}`,
-      cancel_url:   `${window.location.origin}${cancelPath}?cancelled=true`,
-      custom_field: JSON.stringify({ ...customField, plan, ref }),
-    };
-
-    const response = await fetch(NEXUS.paytech.BASE_URL, {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/paytech-create-payment`, {
       method: 'POST',
       headers: {
-        'Accept':       'application/json',
-        'Content-Type': 'application/json',
-        'API_KEY':      NEXUS.paytech.API_KEY,
-        'API_SECRET':   NEXUS.paytech.API_SECRET,
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        plan,
+        email:  customField.email,
+        name:   customField.name,
+        userId: customField.userId || null,
+        origin: window.location.origin,
+      }),
     });
 
     if (!response.ok) {
-      throw new Error(`Erreur serveur PayTech (${response.status})`);
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.error || `Erreur serveur (${response.status})`);
     }
 
     const data = await response.json();
 
-    if (data.success !== 1 || !data.redirect_url) {
-      throw new Error(data.errors?.join(', ') || 'Échec de la création du paiement.');
-    }
-
-    // Sauvegarder la référence localement pour suivi sur success.html
     sessionStorage.setItem('nexus_pending_payment', JSON.stringify({
-      ref,
-      plan,
-      token: data.token || null,
-      createdAt: new Date().toISOString(),
+      ref: data.ref, plan, token: data.token || null, createdAt: new Date().toISOString(),
     }));
 
-    return { redirectUrl: data.redirect_url, ref, token: data.token };
+    return { redirectUrl: data.redirect_url, ref: data.ref, token: data.token };
   },
 
   // ══════════════════════════════════════
