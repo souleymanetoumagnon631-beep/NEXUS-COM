@@ -1059,7 +1059,9 @@ async exportExcel() {
   a.click();
 
   URL.revokeObjectURL(a.href);
-},
+}
 
-// ── Export global ──
+}; // fermeture de l'objet DB
+
+// ── Export global
 window.DB = DB;
