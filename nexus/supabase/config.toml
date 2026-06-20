@@ -1,0 +1,2 @@
+[functions.paytech-webhook]
+verify_jwt = false
