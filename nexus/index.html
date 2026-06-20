@@ -1,1 +1,292 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS — Commerce Intelligence pour Entrepreneurs Africains</title>
+<meta name="description" content="NEXUS centralise vos achats, ventes, clients, livraisons et finances en un seul tableau de bord. 7 jours d'essai gratuit.">
 
+<link rel="stylesheet" href="assets/css/variables.css">
+<link rel="stylesheet" href="assets/css/components.css">
+<link rel="stylesheet" href="assets/css/landing.css">
+
+<style>
+  body{overflow-x:hidden}
+  .theme-toggle{
+    background:var(--surface2);border:1px solid var(--border);
+    border-radius:8px;width:36px;height:36px;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;color:var(--text2);transition:all .2s;
+  }
+  .theme-toggle:hover{background:var(--surface3);color:var(--text)}
+  .nexus-spinner{
+    width:36px;height:36px;border:3px solid var(--border);
+    border-top-color:var(--accent);border-radius:50%;
+    animation:spin .7s linear infinite;
+  }
+</style>
+</head>
+<body>
+
+<div id="landing">
+  <div class="l-orb l-orb-1"></div>
+  <div class="l-orb l-orb-2"></div>
+  <div class="l-orb l-orb-3"></div>
+
+  <!-- NAV -->
+  <nav class="l-nav">
+    <div class="l-logo">
+      <div class="l-logo-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        </svg>
+      </div>
+      <div class="l-logo-name">NEXUS</div>
+    </div>
+    <div class="l-nav-actions">
+      <button class="theme-toggle" onclick="toggleTheme()" title="Changer de mode">
+        <svg id="theme-icon-landing" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      </button>
+      <button class="l-nav-login" onclick="window.location.href='login.html'">Connexion</button>
+      <button class="l-nav-cta" onclick="goSignup('monthly')">Essai gratuit →</button>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="l-hero">
+    <div class="l-hero-badge">
+      <span class="l-hero-badge-dot"></span>
+      7 jours d'essai gratuit — Sans carte bancaire
+    </div>
+
+    <h1 class="l-hero-title">
+      Pilotez votre business<br>
+      <span>avec une clarté totale</span>
+    </h1>
+
+    <p class="l-hero-sub">
+      NEXUS centralise vos achats, ventes, clients, livraisons et finances en un seul tableau de bord. Prenez des décisions basées sur des données réelles — pas des intuitions.
+    </p>
+
+    <div class="l-hero-actions">
+      <button class="l-btn-main" onclick="goSignup('monthly')">
+        Commencer gratuitement
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+      <button class="l-btn-ghost" onclick="document.querySelector('.l-features').scrollIntoView({behavior:'smooth'})">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+        Voir les fonctionnalités
+      </button>
+    </div>
+
+    <div class="l-pricing-row">
+      <div class="l-price-pill"><strong>7 jours</strong>&nbsp;gratuits</div>
+      <div class="l-price-pill"><strong>5 000 FCFA</strong>&nbsp;/ mois</div>
+      <div class="l-price-pill highlight">🔥 <strong>40 000 FCFA</strong>&nbsp;/ an — Économisez 20 000 FCFA</div>
+    </div>
+
+    <div class="l-stats">
+      <div class="l-stat">
+        <div class="l-stat-val">14</div>
+        <div class="l-stat-lbl">Modules intégrés</div>
+      </div>
+      <div class="l-stat">
+        <div class="l-stat-val">100%</div>
+        <div class="l-stat-lbl">Données sécurisées</div>
+      </div>
+      <div class="l-stat">
+        <div class="l-stat-val">7j</div>
+        <div class="l-stat-lbl">Essai gratuit</div>
+      </div>
+      <div class="l-stat">
+        <div class="l-stat-val">∞</div>
+        <div class="l-stat-lbl">Produits & ventes</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="l-features">
+    <div class="l-section-label">Pourquoi NEXUS</div>
+    <h2 class="l-section-title">Tout ce dont votre business a besoin</h2>
+    <p class="l-section-sub">Un seul outil pour remplacer les tableurs, les carnets et les applications éparpillées.</p>
+
+    <div class="l-features-grid">
+      <div class="l-feature-card">
+        <div class="l-feature-icon" style="background:rgba(124,111,255,0.15)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </div>
+        <div class="l-feature-title">Rentabilité en temps réel</div>
+        <div class="l-feature-desc">Visualisez instantanément vos profits, marges et ROI par produit. Plus besoin de calculer manuellement.</div>
+      </div>
+      <div class="l-feature-card">
+        <div class="l-feature-icon" style="background:rgba(201,168,76,0.12)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c9a84c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        </div>
+        <div class="l-feature-title">Gestion clients avancée</div>
+        <div class="l-feature-desc">Suivez chaque client, son historique d'achat, sa valeur totale et relancez-le directement via WhatsApp.</div>
+      </div>
+      <div class="l-feature-card">
+        <div class="l-feature-icon" style="background:rgba(52,211,153,0.1)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        </div>
+        <div class="l-feature-title">Suivi des livraisons</div>
+        <div class="l-feature-desc">Pipeline visuel Kanban pour suivre chaque commande de la confirmation à la livraison finale.</div>
+      </div>
+      <div class="l-feature-card">
+        <div class="l-feature-icon" style="background:rgba(96,165,250,0.1)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="l-feature-title">Graphiques & Analyses</div>
+        <div class="l-feature-desc">Revenus hebdomadaires, mensuels, répartition par canal — des graphiques clairs pour comprendre vos tendances.</div>
+      </div>
+      <div class="l-feature-card">
+        <div class="l-feature-icon" style="background:rgba(251,146,60,0.1)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fb923c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8 19.79 19.79 0 01.22 1.18 2 2 0 012.18 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.16 6.16l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+        </div>
+        <div class="l-feature-title">Relances WhatsApp</div>
+        <div class="l-feature-desc">Relancez vos clients en un clic — remboursements, récommandes, nouvelles offres. Messages prédéfinis intelligents.</div>
+      </div>
+      <div class="l-feature-card">
+        <div class="l-feature-icon" style="background:rgba(244,114,182,0.1)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f472b6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </div>
+        <div class="l-feature-title">Marketing structuré</div>
+        <div class="l-feature-desc">Positionnement, offre irrésistible, angles publicitaires et scripts vidéo — la méthode des pros, simplifiée.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULES -->
+  <section class="l-modules">
+    <div class="l-section-label">Ce que vous gérez</div>
+    <h2 class="l-section-title">14 modules, 1 seul outil</h2>
+    <p class="l-section-sub">Chaque module est conçu pour un aspect précis de votre activité commerciale.</p>
+    <div class="l-modules-grid">
+      <div class="l-module-card"><div class="l-module-icon">📊</div><div class="l-module-name">Dashboard</div><div class="l-module-desc">Vue d'ensemble complète</div></div>
+      <div class="l-module-card"><div class="l-module-icon">🛒</div><div class="l-module-name">Achats</div><div class="l-module-desc">Stocks & investissements</div></div>
+      <div class="l-module-card"><div class="l-module-icon">💰</div><div class="l-module-name">Ventes</div><div class="l-module-desc">Historique & suivi</div></div>
+      <div class="l-module-card"><div class="l-module-icon">👥</div><div class="l-module-name">Clients</div><div class="l-module-desc">CRM simplifié</div></div>
+      <div class="l-module-card"><div class="l-module-icon">📦</div><div class="l-module-name">Livraisons</div><div class="l-module-desc">Pipeline Kanban</div></div>
+      <div class="l-module-card"><div class="l-module-icon">📣</div><div class="l-module-name">Relances</div><div class="l-module-desc">WhatsApp intelligent</div></div>
+      <div class="l-module-card"><div class="l-module-icon">📈</div><div class="l-module-name">Rentabilité</div><div class="l-module-desc">ROI & marges</div></div>
+      <div class="l-module-card"><div class="l-module-icon">💹</div><div class="l-module-name">Revenus</div><div class="l-module-desc">Analyse temporelle</div></div>
+      <div class="l-module-card"><div class="l-module-icon">🏦</div><div class="l-module-name">Finances</div><div class="l-module-desc">Dépenses & seuil</div></div>
+      <div class="l-module-card"><div class="l-module-icon">🚀</div><div class="l-module-name">Projets</div><div class="l-module-desc">Suivi & progression</div></div>
+      <div class="l-module-card"><div class="l-module-icon">✅</div><div class="l-module-name">Tâches</div><div class="l-module-desc">Priorités & suivi</div></div>
+      <div class="l-module-card"><div class="l-module-icon">💡</div><div class="l-module-name">Idées</div><div class="l-module-desc">Scoring & validation</div></div>
+      <div class="l-module-card"><div class="l-module-icon">🎯</div><div class="l-module-name">Marketing</div><div class="l-module-desc">Positionnement & offres</div></div>
+      <div class="l-module-card"><div class="l-module-icon">🎬</div><div class="l-module-name">Créatifs</div><div class="l-module-desc">Scripts & copywriting</div></div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="l-pricing" id="pricing">
+    <div class="l-section-label">Tarifs</div>
+    <h2 class="l-section-title">Un prix simple, sans surprise</h2>
+    <p class="l-section-sub">Commencez gratuitement. Passez au plan qui vous convient quand vous êtes prêt.</p>
+
+    <div class="l-pricing-grid">
+
+      <!-- TRIAL -->
+      <div class="l-plan-card">
+        <div class="l-plan-name">Essai Gratuit</div>
+        <div class="l-plan-price">0 FCFA</div>
+        <div class="l-plan-sub">7 jours, sans engagement</div>
+        <ul class="l-plan-features">
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Accès complet à NEXUS</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>14 modules débloqués</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Aucune carte bancaire requise</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Données conservées si vous passez au payant</li>
+        </ul>
+        <button class="l-plan-btn ghost" onclick="goSignup('trial')">Commencer l'essai</button>
+      </div>
+
+      <!-- MONTHLY -->
+      <div class="l-plan-card">
+        <div class="l-plan-name">Mensuel</div>
+        <div class="l-plan-price">5 000<span> FCFA/mois</span></div>
+        <div class="l-plan-sub">Résiliable à tout moment</div>
+        <ul class="l-plan-features">
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Accès complet à NEXUS</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Produits & ventes illimités</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Support prioritaire</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Paiement sécurisé via PayTech</li>
+        </ul>
+        <button class="l-plan-btn primary" onclick="goSignup('monthly')">Choisir Mensuel</button>
+      </div>
+
+      <!-- ANNUAL -->
+      <div class="l-plan-card featured">
+        <div class="l-plan-badge">MEILLEUR PRIX</div>
+        <div class="l-plan-name">Annuel</div>
+        <div class="l-plan-price">40 000<span> FCFA/an</span></div>
+        <div class="l-plan-sub">Soit 3 333 FCFA/mois — Économisez 20 000 FCFA</div>
+        <ul class="l-plan-features">
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Tout le plan Mensuel</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>2 mois offerts</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Accès anticipé aux nouveautés</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Idéal pour les entrepreneurs sérieux</li>
+        </ul>
+        <button class="l-plan-btn gold" onclick="goSignup('annual')">Choisir Annuel</button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- CTA FINAL -->
+  <section class="l-cta-section">
+    <h2 class="l-cta-title">
+      Prêt à prendre le<br>
+      <span style="background:linear-gradient(135deg,#a78bfa,#c9a84c);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">contrôle total</span> ?
+    </h2>
+    <p class="l-cta-sub">Vos données sont sécurisées sur Supabase. Essai gratuit de 7 jours. Aucun engagement.</p>
+    <button class="l-btn-main" onclick="goSignup('monthly')" style="font-size:1.05rem;padding:18px 48px">
+      Démarrer mon essai gratuit
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </button>
+    <div style="margin-top:24px;font-size:.8rem;color:var(--text3)">
+      7 jours gratuits · Sans carte bancaire · Annulation à tout moment
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="l-footer">
+    <div class="l-logo" style="gap:8px">
+      <div class="l-logo-icon" style="width:28px;height:28px;border-radius:7px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      </div>
+      <span class="l-logo-name" style="font-size:1rem">NEXUS</span>
+    </div>
+    <div>© 2026 NEXUS — Commerce Intelligence pour entrepreneurs africains</div>
+    <div style="color:var(--accent);font-size:.75rem;font-weight:600">v1.0</div>
+  </footer>
+</div>
+
+<script>
+function goSignup(plan) {
+  window.location.href = `login.html?signup=true&plan=${plan}`;
+}
+
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light-theme');
+  localStorage.setItem('nexus_theme', isLight ? 'light' : 'dark');
+  const sunIcon  = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+  const moonIcon = '<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>';
+  const icon = document.getElementById('theme-icon-landing');
+  if (icon) icon.innerHTML = isLight ? sunIcon : moonIcon;
+}
+
+// Init thème au chargement
+(function() {
+  const saved = localStorage.getItem('nexus_theme');
+  if (saved === 'light') {
+    document.body.classList.add('light-theme');
+    const icon = document.getElementById('theme-icon-landing');
+    if (icon) icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+  }
+})();
+</script>
+
+</body>
+</html>
