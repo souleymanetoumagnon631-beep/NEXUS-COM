@@ -22,7 +22,7 @@ const PayTech = {
       ref_command:  ref,
       command_name: `Abonnement NEXUS ${planConfig.name}`,
       env:          NEXUS.paytech.ENV,
-      ipn_url:      `${window.location.origin}/api/paytech-webhook`,
+      ipn_url:      `${SUPABASE_URL}/functions/v1/paytech-webhook`,
       success_url:  `${window.location.origin}${successPath}?plan=${plan}&ref=${ref}`,
       cancel_url:   `${window.location.origin}${cancelPath}?cancelled=true`,
       custom_field: JSON.stringify({ ...customField, plan, ref }),
