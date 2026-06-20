@@ -68,7 +68,10 @@ Deno.serve(async (req) => {
 
     if (data.success !== 1 || !data.redirect_url) {
       console.error("[paytech-create-payment] Erreur PayTech:", data);
-      return json({ error: data.errors?.join(", ") || "Erreur PayTech" }, 400);
+      return json({
+  error: "Erreur PayTech",
+  paytech_response: data
+}, 400);
     }
 
     return json({ redirect_url: data.redirect_url, ref, token: data.token || null });
