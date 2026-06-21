@@ -49,7 +49,7 @@ Pages.relances = {
   // ══════════════════════════════════════
   _remboursementHTML() {
     return `
-      <div class="split-340"
+      <div class="split-340">
         <div class="card">
           <div class="card-header"><div class="card-title">Configurer la relance</div></div>
           <div class="card-body">
@@ -160,7 +160,7 @@ Pages.relances = {
   // ══════════════════════════════════════
   _recommandeHTML() {
     return `
-      <div class="split-340"
+      <div class="split-340">
         <div class="card">
           <div class="card-header"><div class="card-title">Configurer la relance</div></div>
           <div class="card-body">
@@ -287,7 +287,7 @@ Pages.relances = {
   // ══════════════════════════════════════
   _offresHTML() {
     return `
-      <div class="split-2col"
+      <div class="split-2col">
         <div class="card">
           <div class="card-header">
             <div class="card-title">Créer un contenu publicitaire</div>
