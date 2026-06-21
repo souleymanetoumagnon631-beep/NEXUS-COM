@@ -73,7 +73,7 @@ body.light-theme .nav-item.active{ color:var(--accent) }
   padding:2px 7px;border-radius:99px;min-width:20px;text-align:center;
   box-shadow:0 2px 8px var(--glow);
 }
-.sidebar-footer{padding:12px 10px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
+.sidebar-footer{padding:12px 10px calc(12px + env(safe-area-inset-bottom, 0px));border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
 .sb-btn{
   display:flex;align-items:center;gap:9px;padding:10px 13px;border-radius:10px;
   cursor:pointer;font-size:.79rem;font-weight:600;border:none;width:100%;text-align:left;transition:var(--tr);
@@ -120,6 +120,16 @@ body.light-theme .topbar{ background:rgba(255,255,255,0.85) }
   .two-col{grid-template-columns:1fr}
   .delivery-pipeline{grid-template-columns:1fr 1fr}
   .topbar-user{flex-wrap:wrap;justify-content:flex-end}
+   /* Patch global : toute grille 2-colonnes en inline devient 1 colonne */
+  [style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Patch global : tout header flex en inline peut wrapper */
+  [style*="justify-content:space-between"] {
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+  }
 }
 @media(max-width:640px){
   .stats-grid{grid-template-columns:1fr 1fr}
