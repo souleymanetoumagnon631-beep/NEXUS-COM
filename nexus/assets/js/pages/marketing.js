@@ -128,7 +128,7 @@ Pages.marketing = {
     if (!this._currentPid) return this._noProductHTML();
 
     return `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="split-2col"
         <div class="card">
           <div class="card-header">
             <div class="card-title">
@@ -297,7 +297,7 @@ Pages.marketing = {
     if (!this._currentPid) return this._noProductHTML();
 
     return `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="split-2col"
         <div class="card">
           <div class="card-header">
             <div class="card-title">
@@ -464,7 +464,7 @@ Pages.marketing = {
   // ══════════════════════════════════════
   _anglesHTML() {
     return `
-      <div style="display:grid;grid-template-columns:360px 1fr;gap:20px">
+      <div class="split-360"
         <div class="card">
           <div class="card-header">
             <div class="card-title">Ajouter un Angle</div>
@@ -634,7 +634,7 @@ Pages.marketing = {
 
   _scriptsHTML() {
     return `
-      <div style="display:grid;grid-template-columns:400px 1fr;gap:20px">
+      <div class="split-400"
         <div class="card">
           <div class="card-header">
             <div class="card-title">Créer un Script</div>
@@ -799,7 +799,7 @@ Pages.marketing = {
 
   _copiesHTML() {
     return `
-      <div style="display:grid;grid-template-columns:400px 1fr;gap:20px">
+      <div class="split-400"
         <div class="card">
           <div class="card-header">
             <div class="card-title">Créer un Copywriting</div>

@@ -107,6 +107,12 @@ body.light-theme .topbar{ background:rgba(255,255,255,0.85) }
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .two-col{display:grid;grid-template-columns:405px 1fr;gap:20px}
 
+/* ── SPLITS RESPONSIFS ── */
+.split-2col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.split-340{display:grid;grid-template-columns:340px 1fr;gap:20px}
+.split-360{display:grid;grid-template-columns:360px 1fr;gap:20px}
+.split-400{display:grid;grid-template-columns:400px 1fr;gap:20px}
+
 /* ── RESPONSIVE ── */
 @media(max-width:960px){
   .sidebar{transform:translateX(-100%)}
@@ -118,18 +124,9 @@ body.light-theme .topbar{ background:rgba(255,255,255,0.85) }
   .page{padding:16px}
   .topbar{padding:12px 16px;flex-wrap:wrap;gap:10px}
   .two-col{grid-template-columns:1fr}
+  .split-2col,.split-340,.split-360,.split-400{grid-template-columns:1fr;gap:16px}
   .delivery-pipeline{grid-template-columns:1fr 1fr}
   .topbar-user{flex-wrap:wrap;justify-content:flex-end}
-   /* Patch global : toute grille 2-colonnes en inline devient 1 colonne */
-  [style*="grid-template-columns"] {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* Patch global : tout header flex en inline peut wrapper */
-  [style*="justify-content:space-between"] {
-    flex-wrap: wrap !important;
-    gap: 12px !important;
-  }
 }
 @media(max-width:640px){
   .stats-grid{grid-template-columns:1fr 1fr}

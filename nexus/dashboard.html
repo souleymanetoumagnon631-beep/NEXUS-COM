@@ -325,7 +325,7 @@
     <div class="stats-grid" id="d-stats"></div>
     <div id="dash-specific-stats"></div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px">
+    <div class="split-2col" style="margin-bottom:20px" id="dash-charts-row">
       <div class="card">
         <div class="card-header"><div class="card-title">Revenus — 7 derniers jours</div></div>
         <div class="chart-wrap"><canvas id="chart-week"></canvas></div>
@@ -336,7 +336,7 @@
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px">
+    <div class="split-2col" style="margin-bottom:20px">
       <div class="card">
         <div class="card-header"><div class="card-title">Top produits rentables</div></div>
         <div id="d-top" style="padding:14px;display:flex;flex-direction:column;gap:8px"></div>
@@ -347,7 +347,7 @@
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+    <div class="split-2col">
       <div class="card">
         <div class="card-header">
           <div class="card-title">Suivi des projets</div>
@@ -707,7 +707,7 @@
       <p style="font-size:.8rem;color:var(--text3)">Suivi de vos gains sur tous vos produits</p>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:24px" id="rev-kpis"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px">
+    <div class="split-2col" style="margin-bottom:24px">
       <div class="card">
         <div class="card-header"><div class="card-title">Revenus mensuels</div></div>
         <div class="chart-wrap"><canvas id="chart-monthly"></canvas></div>
@@ -749,7 +749,7 @@
       <button class="btn btn-primary" onclick="Pages.finances?.openModal?.()">+ Dépense fixe</button>
     </div>
     <div class="fin-grid" id="fin-kpis"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+    <div class="split-2col">
       <div class="card">
         <div class="card-header"><div class="card-title">Dépenses fixes mensuelles</div></div>
         <div class="table-wrap">
