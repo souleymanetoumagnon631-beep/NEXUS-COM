@@ -117,6 +117,12 @@ const Nav = {
     this.renderers[page] = fn;
   },
 
+  refreshIfActive(page) {
+    if (this.renderers[page] && State.ui.currentPage === page) {
+      this.renderers[page]();
+    }
+  },
+
   go(page, el = null) {
     // Cacher toutes les pages
     $$('.page').forEach(p => p.classList.remove('active'));
@@ -471,9 +477,18 @@ function initKeyboardShortcuts() {
   });
 }
 
+function debounce(fn, delay = 300) {
+  let t;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), delay);
+  };
+}
+
 // ══════════════════════════════════════════
 //   EXPORT GLOBAL
 // ══════════════════════════════════════════
+window.debounce = debounce;
 window.Toast    = Toast;
 window.Nav      = Nav;
 window.Badges   = Badges;

@@ -188,7 +188,7 @@ Pages.achats = {
         Modal.close('editModal');
         State.modals.editProductId = null;
         this.render();
-        Pages.dashboard?.render?.();
+        Nav.refreshIfActive('dashboard');
       },
       { successMsg: 'Achat mis à jour.', errorMsg: 'Erreur lors de la mise à jour.' }
     );
@@ -205,7 +205,7 @@ Pages.achats = {
         State.removeProduct(id);
         Badges.update();
         this.render();
-        Pages.dashboard?.render?.();
+        Nav.refreshIfActive('dashboard');
       },
       { successMsg: `"${p.name}" supprimé.`, errorMsg: 'Erreur lors de la suppression.' }
     );

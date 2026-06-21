@@ -1324,7 +1324,7 @@ function clearDashFilter() {
   const sel = $('dash-product-filter');
   if (sel) sel.value = '';
   $('dash-filter-badge').style.display = 'none';
-  Pages.dashboard?.render?.();
+  Nav.refreshIfActive('dashboard');
 }
 
 function toggleUserMenu() {

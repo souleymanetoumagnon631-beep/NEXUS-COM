@@ -134,31 +134,24 @@ function registerPages() {
 //   REALTIME SUPABASE
 // ══════════════════════════════════════════
 function initRealtime() {
-  DB.realtime.onNewSale(sale => {
-    const exists = State.getSale(sale.id);
-    if (!exists) {
-      State.addSale(sale);
-      Badges.update();
-      if (State.ui.currentPage === 'dashboard') {
-        Pages.dashboard?.render?.();
+  DB.realtime.subscribeAll({
+    onNewSale(sale) {
+      const exists = State.getSale(sale.id);
+      if (!exists) {
+        State.addSale(sale);
+        Badges.update();
+        Nav.refreshIfActive('dashboard');
+        Toast.info('Nouvelle vente enregistrée en temps réel');
       }
-      Toast.info('Nouvelle vente enregistrée en temps réel');
-    }
-  });
-
-  DB.realtime.onLivraisonChange(payload => {
-    const { eventType, new: newRecord, old: oldRecord } = payload;
-    if (eventType === 'INSERT') {
-      State.addLivraison(newRecord);
-    } else if (eventType === 'UPDATE') {
-      State.updateLivraison(newRecord.id, newRecord);
-    } else if (eventType === 'DELETE') {
-      State.removeLivraison(oldRecord.id);
-    }
-    Badges.update();
-    if (State.ui.currentPage === 'livraisons') {
-      Pages.livraisons?.render?.();
-    }
+    },
+    onLivraisonChange(payload) {
+      const { eventType, new: newRecord, old: oldRecord } = payload;
+      if (eventType === 'INSERT') State.addLivraison(newRecord);
+      else if (eventType === 'UPDATE') State.updateLivraison(newRecord.id, newRecord);
+      else if (eventType === 'DELETE') State.removeLivraison(oldRecord.id);
+      Badges.update();
+      Nav.refreshIfActive('livraisons');
+    },
   });
 }
 

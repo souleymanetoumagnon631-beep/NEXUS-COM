@@ -3,6 +3,7 @@
 // ══════════════════════════════════════════
 Pages.rentabilite = {
 
+  _chartDebounced: null,
   _sort: { field: 'profit', dir: -1 },
 
   render() {
@@ -68,7 +69,8 @@ Pages.rentabilite = {
         </tr>`;
     }).join('');
 
-    Charts.buildProfitChart();
+    if (!this._chartDebounced) this._chartDebounced = debounce(() => Charts.buildProfitChart(), 300);
+    this._chartDebounced();
   },
 
   sortBy(field) {

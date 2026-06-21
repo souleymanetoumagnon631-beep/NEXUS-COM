@@ -790,46 +790,21 @@ const DB = {
   //   REALTIME : écouter les changements live
   // ══════════════════════════════════════════
   realtime: {
-
-    // Écouter les nouvelles ventes en temps réel
-    onNewSale(callback) {
-      return NEXUS.supabase
-        .channel('sales-changes')
-        .on(
-          'postgres_changes',
-          {
-            event:  'INSERT',
-            schema: 'public',
-            table:  'sales',
-            filter: `user_id=eq.${DB.userId()}`,
-          },
-          payload => callback(payload.new)
-        )
-        .subscribe();
-    },
-
-    // Écouter les changements de livraisons
-    onLivraisonChange(callback) {
-      return NEXUS.supabase
-        .channel('livraisons-changes')
-        .on(
-          'postgres_changes',
-          {
-            event:  '*',
-            schema: 'public',
-            table:  'livraisons',
-            filter: `user_id=eq.${DB.userId()}`,
-          },
-          payload => callback(payload)
-        )
-        .subscribe();
-    },
-
-    // Se désabonner d'un channel
-    unsubscribe(channel) {
-      if (channel) NEXUS.supabase.removeChannel(channel);
-    },
+  subscribeAll(callbacks) {
+    return NEXUS.supabase
+      .channel(`user-${DB.userId()}-changes`)
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'sales', filter: `user_id=eq.${DB.userId()}` },
+        payload => callbacks.onNewSale?.(payload.new))
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'livraisons', filter: `user_id=eq.${DB.userId()}` },
+        payload => callbacks.onLivraisonChange?.(payload))
+      .subscribe();
   },
+  unsubscribe(channel) {
+    if (channel) NEXUS.supabase.removeChannel(channel);
+  },
+},
 
 // ══════════════════════════════════════════
 //   EXPORT JSON (backup complet)

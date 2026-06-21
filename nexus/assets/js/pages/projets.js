@@ -164,7 +164,7 @@ Pages.projets = {
         this.render();
         Modal.close('projectModal');
         State.modals.editProjectId = null;
-        Pages.dashboard?.render?.();
+        Nav.refreshIfActive('dashboard');
       },
       { btnId: 'btn-save-proj', errorMsg: 'Erreur lors de l\'enregistrement.' }
     );
@@ -180,7 +180,7 @@ Pages.projets = {
         State.removeProject(id);
         Badges.update();
         this.render();
-        Pages.dashboard?.render?.();
+        Nav.refreshIfActive('dashboard');
       },
       { successMsg: 'Projet supprimé.', errorMsg: 'Erreur lors de la suppression.' }
     );

@@ -141,7 +141,7 @@ Pages.ventes = {
         this.render();
         this.clearForm();
         this.onProductChange();
-        Pages.dashboard?.render?.();
+        Nav.refreshIfActive('dashboard');
       },
       {
         btnId:      'btn-save-vente',
@@ -172,7 +172,7 @@ Pages.ventes = {
         State.removeSale(id);
         Badges.update();
         this.render();
-        Pages.dashboard?.render?.();
+        Nav.refreshIfActive('dashboard');
       },
       { successMsg: 'Vente supprimée.', errorMsg: 'Erreur lors de la suppression.' }
     );

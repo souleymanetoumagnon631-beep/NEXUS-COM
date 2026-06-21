@@ -140,7 +140,7 @@ Pages.taches = {
         this.render();
         Modal.close('taskModal');
         State.modals.editTaskId = null;
-        Pages.dashboard?.render?.();
+        Nav.refreshIfActive('dashboard');
       },
       { btnId: 'btn-save-task', errorMsg: 'Erreur lors de l\'enregistrement.' }
     );
@@ -158,7 +158,7 @@ Pages.taches = {
         State.updateTask(id, { status: newStatus });
         Badges.update();
         this.render();
-        Pages.dashboard?.render?.();
+        Nav.refreshIfActive('dashboard');
       },
       { errorMsg: 'Erreur lors de la mise à jour.' }
     );
@@ -174,7 +174,7 @@ Pages.taches = {
         State.removeTask(id);
         Badges.update();
         this.render();
-        Pages.dashboard?.render?.();
+        Nav.refreshIfActive('dashboard');
       },
       { successMsg: 'Tâche supprimée.', errorMsg: 'Erreur lors de la suppression.' }
     );
