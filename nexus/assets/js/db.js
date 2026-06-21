@@ -505,6 +505,14 @@ const DB = {
   // ══════════════════════════════════════════
   marketingData: {
 
+    async getAll() {
+      const { data, error } = await NEXUS.supabase
+        .from('marketing_data')
+        .select('*');
+      if (error) DB.handleError(error, 'marketingData.getAll');
+      return data || [];
+    },
+
     async getByProduct(productId) {
       const { data, error } = await NEXUS.supabase
         .from('marketing_data')
@@ -738,48 +746,20 @@ const DB = {
   async loadAll() {
     try {
       const [
-        products,
-        sales,
-        clients,
-        livraisons,
-        projects,
-        tasks,
-        ideas,
-        expenses,
-        angles,
-        scripts,
-        copies,
-        offers,
+        products, sales, clients, livraisons, projects, tasks, ideas,
+        expenses, angles, scripts, copies, offers, marketingData,
       ] = await Promise.all([
-        this.products.getAll(),
-        this.sales.getAll(),
-        this.clients.getAll(),
-        this.livraisons.getAll(),
-        this.projects.getAll(),
-        this.tasks.getAll(),
-        this.ideas.getAll(),
-        this.expenses.getAll(),
-        this.angles.getAll(),
-        this.scripts.getAll(),
-        this.copies.getAll(),
-        this.offers.getAll(),
+        this.products.getAll(), this.sales.getAll(), this.clients.getAll(),
+        this.livraisons.getAll(), this.projects.getAll(), this.tasks.getAll(),
+        this.ideas.getAll(), this.expenses.getAll(), this.angles.getAll(),
+        this.scripts.getAll(), this.copies.getAll(), this.offers.getAll(),
+        this.marketingData.getAll(),
       ]);
 
       return {
-        products,
-        sales,
-        clients,
-        livraisons,
-        projects,
-        tasks,
-        ideas,
-        expenses,
-        angles,
-        scripts,
-        copies,
-        offers,
+        products, sales, clients, livraisons, projects, tasks, ideas,
+        expenses, angles, scripts, copies, offers, marketingData,
       };
-
     } catch (err) {
       console.error('[DB] Erreur chargement global:', err);
       throw err;
@@ -807,236 +787,114 @@ const DB = {
 },
 
 // ══════════════════════════════════════════
-//   EXPORT JSON (backup complet)
-// ══════════════════════════════════════════
-async exportBackup() {
+  //   EXPORT JSON (backup complet)
+  // ══════════════════════════════════════════
+  async exportBackup() {
+    const all = await this.loadAll();
+    const blob = new Blob(
+      [JSON.stringify({ ...all, exportedAt: new Date().toISOString(), version: '1.1' }, null, 2)],
+      { type: 'application/json' }
+    );
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `nexus_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  },
 
-  const all = await this.loadAll();
+  // ══════════════════════════════════════════
+  //   EXPORT EXCEL (synthèse rentabilité)
+  // ══════════════════════════════════════════
+  exportExcel() {
+    const products = State.getProducts();
+    if (!products.length) { Toast.info('Aucune donnée à exporter.'); return; }
 
-  const cleanData = structuredClone(all);
-
-  // Nettoyage des objets liés ajoutés par les SELECT relationnels
-  cleanData.sales?.forEach(r => {
-    delete r.product;
-    delete r.client;
-  });
-
-  cleanData.livraisons?.forEach(r => {
-    delete r.product;
-    delete r.client;
-  });
-
-  cleanData.projects?.forEach(r => {
-    delete r.product;
-  });
-
-  cleanData.tasks?.forEach(r => {
-    delete r.project;
-  });
-
-  cleanData.scripts?.forEach(r => {
-    delete r.angle;
-  });
-
-  cleanData.copies?.forEach(r => {
-    delete r.angle;
-  });
-
-  cleanData.offers?.forEach(r => {
-    delete r.product;
-  });
-
-  const blob = new Blob(
-    [
-      JSON.stringify(
-        {
-          ...cleanData,
-          exportedAt: new Date().toISOString(),
-          version: '1.0'
-        },
-        null,
-        2
-      )
-    ],
-    {
-      type: 'application/json'
-    }
-  );
-
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `nexus_backup_${new Date().toISOString().split('T')[0]}.json`;
-  a.click();
-
-  URL.revokeObjectURL(a.href);
-},
-
-// ══════════════════════════════════════════
-//   IMPORT JSON (fusion intelligente)
-// ══════════════════════════════════════════
-async importBackup() {
-
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.json';
-
-  input.onchange = async (e) => {
-
-    try {
-
-      const file = e.target.files?.[0];
-
-      if (!file) return;
-
-      const backup = JSON.parse(
-        await file.text()
-      );
-
-      const tables = [
-
-        ['products', 'products'],
-        ['clients', 'clients'],
-
-        ['projects', 'projects'],
-        ['ideas', 'ideas'],
-
-        ['fixed_expenses', 'expenses'],
-
-        ['marketing_angles', 'angles'],
-
-        ['sales', 'sales'],
-        ['livraisons', 'livraisons'],
-
-        ['tasks', 'tasks'],
-
-        ['marketing_scripts', 'scripts'],
-        ['marketing_copies', 'copies'],
-
-        ['saved_offers', 'offers']
-
+    const headers = ['Produit', 'Boutique', 'Investissement', 'CA', 'Coût/u', 'Profit', 'ROI %', 'Stock'];
+    const rows = products.map(p => {
+      const s = Engine.getProductStats(p.id) || {};
+      return [
+        p.name, p.store || '',
+        Math.round(s.invest || 0), Math.round(s.ca || 0), Math.round(s.unit || 0),
+        Math.round(s.profit || 0), (s.roi || 0).toFixed(2), s.stock ?? 0,
       ];
+    });
 
-      let totalImported = 0;
+    const escCell = v => `"${String(v).replace(/"/g, '""')}"`;
+    const tableRows = [headers, ...rows]
+      .map(row => '<tr>' + row.map(c => `<td>${escCell(c)}</td>`).join('') + '</tr>')
+      .join('');
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body><table>${tableRows}</table></body></html>`;
 
-      for (const [tableName, backupKey] of tables) {
+    const blob = new Blob(['\uFEFF' + html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `nexus_export_${new Date().toISOString().split('T')[0]}.xls`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    Toast.ok('Export Excel généré.');
+  },
 
-        const rows = backup[backupKey];
+  // ══════════════════════════════════════════
+  //   IMPORT JSON — restauration complète
+  //   Remplace tout, régénère les UUID, reconstruit les liens
+  // ══════════════════════════════════════════
+  async _reinsertTable(table, records, fkMaps = {}) {
+    const idMap = {};
+    if (!records || !records.length) return idMap;
 
-        if (!Array.isArray(rows) || rows.length === 0)
-          continue;
-
-        const cleanedRows = rows.map(row => {
-
-          const copy = { ...row };
-
-          delete copy.product;
-          delete copy.client;
-          delete copy.angle;
-          delete copy.project;
-
-          return {
-            ...copy,
-            user_id: DB.userId()
-          };
-
-        });
-
-        const { error } = await NEXUS.supabase
-          .from(tableName)
-          .upsert(cleanedRows, {
-            onConflict: 'id'
-          });
-
-        if (error)
-          throw error;
-
-        totalImported += cleanedRows.length;
-      }
-
-      alert(
-        `Import terminé avec succès.\n\n${totalImported} éléments importés ou mis à jour.`
-      );
-
-      location.reload();
-
-    } catch (err) {
-
-      console.error(err);
-
-      alert(
-        'Erreur lors de l’import :\n\n' +
-        (err.message || err)
-      );
-    }
-  };
-
-  input.click();
-},
-
-// ══════════════════════════════════════════
-//   EXPORT EXCEL (CSV compatible Excel)
-// ══════════════════════════════════════════
-async exportExcel() {
-
-  const all = await this.loadAll();
-
-  const rows = [];
-
-  Object.entries(all).forEach(([section, data]) => {
-
-    rows.push([section.toUpperCase()]);
-    rows.push([]);
-
-    if (Array.isArray(data)) {
-
-      data.forEach(item => {
-
-        const clean = { ...item };
-
-        delete clean.product;
-        delete clean.client;
-        delete clean.angle;
-        delete clean.project;
-
-        rows.push([
-          JSON.stringify(clean)
-        ]);
+    const clean = records.map(r => {
+      const { id, created_at, updated_at, user_id, product, client, project, angle, ...rest } = r;
+      Object.entries(fkMaps).forEach(([field, map]) => {
+        if (rest[field]) rest[field] = map[rest[field]] || null; // lien cassé → on coupe plutôt que planter
       });
+      return { ...rest, user_id: DB.userId() };
+    });
+
+    const { data, error } = await NEXUS.supabase.from(table).insert(clean).select('id');
+    if (error) throw new Error(`Erreur import "${table}" : ${error.message}`);
+
+    records.forEach((orig, i) => { idMap[orig.id] = data[i].id; });
+    return idMap;
+  },
+
+  async importBackup(file) {
+    const text = await file.text();
+    let data;
+    try { data = JSON.parse(text); } catch { throw new Error('Fichier JSON invalide.'); }
+
+    if (!Array.isArray(data.products) || !Array.isArray(data.sales)) {
+      throw new Error('Structure de fichier non reconnue.');
     }
 
-    rows.push([]);
-  });
-
-  const csv = rows
-    .map(row =>
-      row
-        .map(cell =>
-          `"${String(cell || '').replace(/"/g, '""')}"`
-        )
-        .join(';')
-    )
-    .join('\n');
-
-  const blob = new Blob(
-    [csv],
-    {
-      type: 'text/csv;charset=utf-8;'
+    const uid = DB.userId();
+    const wipeTables = [
+      'sales', 'livraisons', 'tasks', 'ideas', 'fixed_expenses',
+      'marketing_data', 'marketing_angles', 'marketing_scripts',
+      'marketing_copies', 'saved_offers', 'projects', 'clients', 'products',
+    ];
+    for (const t of wipeTables) {
+      await NEXUS.supabase.from(t).delete().eq('user_id', uid);
     }
-  );
 
-  const a = document.createElement('a');
+    const productMap = await this._reinsertTable('products', data.products);
+    const clientMap  = await this._reinsertTable('clients', data.clients);
+    await this._reinsertTable('ideas', data.ideas || []);
+    await this._reinsertTable('fixed_expenses', data.expenses || []);
 
-  a.href = URL.createObjectURL(blob);
+    const angleMap   = await this._reinsertTable('marketing_angles', data.angles || [], { product_id: productMap });
+    const projectMap = await this._reinsertTable('projects', data.projects || [], { product_id: productMap });
 
-  a.download =
-    `nexus_export_${new Date().toISOString().split('T')[0]}.csv`;
+    await this._reinsertTable('marketing_data', data.marketingData || [], { product_id: productMap });
+    await this._reinsertTable('marketing_scripts', data.scripts || [], { product_id: productMap, angle_id: angleMap });
+    await this._reinsertTable('marketing_copies', data.copies || [], { product_id: productMap, angle_id: angleMap });
+    await this._reinsertTable('saved_offers', data.offers || [], { product_id: productMap });
 
-  a.click();
+    await this._reinsertTable('sales', data.sales || [], { product_id: productMap, client_id: clientMap });
+    await this._reinsertTable('livraisons', data.livraisons || [], { product_id: productMap, client_id: clientMap });
+    await this._reinsertTable('tasks', data.tasks || [], { project_id: projectMap });
 
-  URL.revokeObjectURL(a.href);
-}
+    return true;
+  },
+};
 
-}; // fermeture de l'objet DB
-
-// ── Export global
 window.DB = DB;

@@ -276,3 +276,21 @@ Pages.compte = {
     );
   },
 };
+async function handleImportFile(event) {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+
+  if (!confirm('⚠️ Importer ce fichier remplacera TOUTES vos données actuelles. Continuer ?')) return;
+  if (!confirm('Dernière confirmation : vos données actuelles seront définitivement écrasées.')) return;
+
+  await Action.run(
+    async () => {
+      await DB.importBackup(file);
+      await State.init();
+      Badges.update();
+      Nav.go(State.ui.currentPage || 'dashboard');
+    },
+    { successMsg: 'Importation réussie.', errorMsg: 'Échec de l\'importation.' }
+  );
+}

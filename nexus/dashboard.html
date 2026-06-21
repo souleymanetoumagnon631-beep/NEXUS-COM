@@ -241,23 +241,20 @@
   </nav>
 
   <!-- Footer sidebar -->
- <div class="sidebar-tools">
-
-  <button class="tool-btn" onclick="DB.exportBackup()">
-    <i class="fas fa-download"></i>
-    <span class="tooltip">Exporter JSON</span>
+<div class="sidebar-footer">
+  <button class="sb-btn export" onclick="DB.exportBackup()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Exporter JSON
   </button>
-
-  <button class="tool-btn" onclick="DB.importBackup()">
-    <i class="fas fa-upload"></i>
-    <span class="tooltip">Importer JSON</span>
+  <button class="sb-btn import" onclick="$('import-file-input').click()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    Importer JSON
   </button>
-
-  <button class="tool-btn" onclick="DB.exportExcel()">
-    <i class="fas fa-file-excel"></i>
-    <span class="tooltip">Exporter Excel</span>
+  <button class="sb-btn export-alt" onclick="DB.exportExcel()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    Exporter Excel
   </button>
-
+  <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="handleImportFile(event)">
 </div>
 
 </aside>

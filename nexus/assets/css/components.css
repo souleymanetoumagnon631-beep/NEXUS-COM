@@ -24,6 +24,8 @@
 .btn-warning:hover{background:rgba(251,191,36,0.18)}
 .btn-sm{padding:6px 13px;font-size:.78rem;border-radius:8px}
 .btn-icon{width:33px;height:33px;padding:0;justify-content:center;border-radius:8px}
+.sb-btn.export-alt{background:rgba(124,111,255,0.09);color:var(--accent2);border:1px solid rgba(124,111,255,0.22)}
+.sb-btn.export-alt:hover{background:rgba(124,111,255,0.16);transform:translateX(3px)}
 
 /* ── CARDS ── */
 .card{
