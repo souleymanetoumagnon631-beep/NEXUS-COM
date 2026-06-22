@@ -952,15 +952,25 @@ const DB = {
   },
 
   // ══════════════════════════════════════════
-  //   [C1] + [C2] + [C4] IMPORT BACKUP — CORRIGÉ
+  //   IMPORT BACKUP v2 — NON-DESTRUCTIF
   //
-  //   Corrections appliquées :
-  //   [C1] Ordre FK-safe : suppression enfants → parents
-  //   [C2] Validation JSON COMPLÈTE avant toute suppression
-  //   [C4] idMap sécurisé via champ _import_orig_id
+  //   PRINCIPE FONDAMENTAL :
+  //   On ne supprime JAMAIS les données existantes.
+  //   On fusionne intelligemment :
+  //     • Enregistrement absent en base → INSERT
+  //     • Enregistrement déjà présent   → SKIP (pas d'écrasement)
+  //
+  //   En cas d'erreur pendant l'import :
+  //     • Les données déjà présentes sont intactes
+  //     • Les nouvelles partiellement insérées restent
+  //     • Aucune perte possible
+  //
+  //   MODE REMPLACEMENT TOTAL disponible via _wipeAndRestore()
+  //   mais uniquement appelé si l'utilisateur le confirme
+  //   explicitement ET que la validation est 100% réussie.
   // ══════════════════════════════════════════
 
-  // [C2] Valide le fichier JSON sans toucher à la base
+  // ── Validation complète du fichier avant tout traitement ──
   _validateBackup(data) {
     const errors = [];
 
@@ -969,82 +979,132 @@ const DB = {
       return errors;
     }
 
-    // Vérification structure obligatoire
+    // Structure obligatoire
     if (!Array.isArray(data.products)) errors.push('Champ "products" manquant ou invalide.');
     if (!Array.isArray(data.sales))    errors.push('Champ "sales" manquant ou invalide.');
     if (!Array.isArray(data.clients))  errors.push('Champ "clients" manquant ou invalide.');
 
     if (errors.length) return errors;
 
-    // Vérification des FK critiques dans les ventes
+    // Vérification cohérence des FK dans le fichier lui-même
     const productIds = new Set(data.products.map(p => p.id).filter(Boolean));
     const clientIds  = new Set(data.clients.map(c => c.id).filter(Boolean));
+    const projectIds = new Set((data.projects || []).map(p => p.id).filter(Boolean));
+    const angleIds   = new Set((data.angles   || []).map(a => a.id).filter(Boolean));
 
-    const brokenSales = (data.sales || []).filter(
-      s => s.product_id && !productIds.has(s.product_id)
-    );
-    if (brokenSales.length > 0) {
-      errors.push(
-        `${brokenSales.length} vente(s) référencent des produits inexistants dans ce backup.`
-      );
-    }
+    (data.sales || []).forEach(s => {
+      if (s.product_id && !productIds.has(s.product_id))
+        errors.push(`Vente "${s.id}" référence un produit inconnu (${s.product_id}).`);
+    });
 
-    const brokenLivs = (data.livraisons || []).filter(
-      l => l.client_id && !clientIds.has(l.client_id)
-    );
-    if (brokenLivs.length > 0) {
-      errors.push(
-        `${brokenLivs.length} livraison(s) référencent des clients inexistants dans ce backup.`
-      );
-    }
+    (data.livraisons || []).forEach(l => {
+      if (l.client_id && !clientIds.has(l.client_id))
+        errors.push(`Livraison "${l.id}" référence un client inconnu (${l.client_id}).`);
+      if (l.product_id && !productIds.has(l.product_id))
+        errors.push(`Livraison "${l.id}" référence un produit inconnu (${l.product_id}).`);
+    });
+
+    (data.tasks || []).forEach(t => {
+      if (t.project_id && !projectIds.has(t.project_id))
+        errors.push(`Tâche "${t.id}" référence un projet inconnu (${t.project_id}).`);
+    });
+
+    (data.scripts || []).forEach(s => {
+      if (s.angle_id && !angleIds.has(s.angle_id))
+        errors.push(`Script "${s.id}" référence un angle inconnu (${s.angle_id}).`);
+    });
+
+    (data.copies || []).forEach(c => {
+      if (c.angle_id && !angleIds.has(c.angle_id))
+        errors.push(`Copy "${c.id}" référence un angle inconnu (${c.angle_id}).`);
+    });
 
     return errors;
   },
 
-  // [C4] Réinsertion avec idMap sécurisé via _import_orig_id
-  async _reinsertTable(table, records, fkMaps = {}) {
+  // ── Fusion non-destructive d'une table ──
+  // Stratégie : on charge les IDs existants en base,
+  // on n'insère QUE ce qui est absent.
+  // Retourne un idMap { ancien_id → nouveau_id_en_base }.
+  async _mergeTable(table, records, fkMaps = {}) {
     const idMap = {};
     if (!records || !records.length) return idMap;
 
     const uid = DB.userId();
 
-    // On nettoie et on injecte _import_orig_id pour tracking sûr
-    const clean = records.map(r => {
-      const {
-        id, created_at, updated_at, user_id,
-        product, client, project, angle,
-        ...rest
-      } = r;
-
-      // Remplacer les FK par les nouveaux IDs
-      Object.entries(fkMaps).forEach(([field, map]) => {
-        if (rest[field]) {
-          rest[field] = map[rest[field]] || null;
-        }
-      });
-
-      return { ...rest, user_id: uid };
-    });
-
-    // Insérer en batch
-    const { data, error } = await NEXUS.supabase
+    // 1. Charger les IDs déjà présents en base pour cette table
+    const { data: existing, error: fetchError } = await NEXUS.supabase
       .from(table)
-      .insert(clean)
-      .select('id');
+      .select('id')
+      .eq('user_id', uid);
 
-    if (error) throw new Error(`Erreur import table "${table}" : ${error.message}`);
+    if (fetchError) throw new Error(`Erreur lecture table "${table}" : ${fetchError.message}`);
 
-    // [C4] Map sécurisée : on se base sur l'index de l'array
-    // Supabase respecte l'ordre d'insertion pour les retours SELECT
-    records.forEach((orig, i) => {
-      if (orig.id && data[i]?.id) {
-        idMap[orig.id] = data[i].id;
+    const existingIds = new Set((existing || []).map(r => r.id));
+
+    // 2. Séparer : nouveaux enregistrements vs déjà présents
+    const toInsert = [];
+    const origIds  = [];
+
+    records.forEach(r => {
+      if (existingIds.has(r.id)) {
+        // Déjà en base : l'ID reste le même, on l'ajoute au map directement
+        idMap[r.id] = r.id;
+      } else {
+        // Absent : à insérer
+        const {
+          id, created_at, updated_at, user_id,
+          product, client, project, angle,
+          ...rest
+        } = r;
+
+        // Remplacer les FK par les nouveaux IDs mappés
+        Object.entries(fkMaps).forEach(([field, map]) => {
+          if (rest[field]) rest[field] = map[rest[field]] || null;
+        });
+
+        toInsert.push({ ...rest, user_id: uid });
+        origIds.push(r.id);
       }
     });
+
+    // 3. Insérer uniquement les nouveaux, par batches de 100
+    //    pour éviter les timeouts sur les gros backups
+    if (toInsert.length > 0) {
+      const BATCH_SIZE = 100;
+      for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
+        const batch     = toInsert.slice(i, i + BATCH_SIZE);
+        const batchOrig = origIds.slice(i, i + BATCH_SIZE);
+
+        const { data: inserted, error: insertError } = await NEXUS.supabase
+          .from(table)
+          .insert(batch)
+          .select('id');
+
+        if (insertError) {
+          throw new Error(
+            `Erreur insertion dans "${table}" (batch ${Math.floor(i / BATCH_SIZE) + 1}) : ${insertError.message}`
+          );
+        }
+
+        // Construire le map avec les nouveaux IDs retournés
+        batchOrig.forEach((origId, idx) => {
+          if (origId && inserted[idx]?.id) {
+            idMap[origId] = inserted[idx].id;
+          }
+        });
+      }
+    }
+
+    const skipped = records.length - toInsert.length;
+    if (skipped > 0) {
+      console.log(`[Import] Table "${table}" : ${toInsert.length} insérés, ${skipped} ignorés (déjà présents).`);
+    }
 
     return idMap;
   },
 
+  // ── Import principal : FUSION NON-DESTRUCTIVE ──
   async importBackup(file) {
     const text = await file.text();
     let data;
@@ -1055,109 +1115,113 @@ const DB = {
       throw new Error('Fichier JSON invalide. Impossible de lire le backup.');
     }
 
-    // [C2] ── VALIDATION COMPLÈTE AVANT SUPPRESSION ──
+    // ÉTAPE 1 : Validation complète AVANT tout traitement
     const validationErrors = this._validateBackup(data);
     if (validationErrors.length > 0) {
       throw new Error(
-        `Backup invalide :\n• ${validationErrors.join('\n• ')}`
+        `Backup invalide — aucune donnée modifiée :\n• ${validationErrors.slice(0, 5).join('\n• ')}` +
+        (validationErrors.length > 5 ? `\n• ...et ${validationErrors.length - 5} autre(s) erreur(s).` : '')
       );
+    }
+
+    console.log('[Import] Validation OK. Début de la fusion non-destructive...');
+
+    // ÉTAPE 2 : Fusion dans l'ordre FK-safe (parents → enfants)
+    // En cas d'erreur à n'importe quelle étape :
+    // - Les données déjà présentes en base sont INTACTES
+    // - Les enregistrements déjà insérés restent en base
+    // - Aucune perte de données possible
+
+    const productMap = await this._mergeTable('products',       data.products   || []);
+    const clientMap  = await this._mergeTable('clients',        data.clients    || []);
+                       await this._mergeTable('ideas',          data.ideas      || []);
+                       await this._mergeTable('fixed_expenses', data.expenses   || []);
+
+    const projectMap = await this._mergeTable('projects', data.projects || [], {
+      product_id: productMap,
+    });
+
+    const angleMap = await this._mergeTable('marketing_angles', data.angles || [], {
+      product_id: productMap,
+    });
+
+    await this._mergeTable('marketing_data', data.marketingData || [], {
+      product_id: productMap,
+    });
+
+    await this._mergeTable('saved_offers', data.offers || [], {
+      product_id: productMap,
+    });
+
+    await this._mergeTable('marketing_scripts', data.scripts || [], {
+      product_id: productMap,
+      angle_id:   angleMap,
+    });
+
+    await this._mergeTable('marketing_copies', data.copies || [], {
+      product_id: productMap,
+      angle_id:   angleMap,
+    });
+
+    await this._mergeTable('sales', data.sales || [], {
+      product_id: productMap,
+      client_id:  clientMap,
+    });
+
+    await this._mergeTable('livraisons', data.livraisons || [], {
+      product_id: productMap,
+      client_id:  clientMap,
+    });
+
+    await this._mergeTable('tasks', data.tasks || [], {
+      project_id: projectMap,
+    });
+
+    console.log('[Import] ✓ Fusion terminée. Aucune donnée existante n\'a été supprimée.');
+    return true;
+  },
+
+  // ── Remplacement total (appelé UNIQUEMENT depuis confirmReset + import) ──
+  // Supprime TOUT puis restaure. Uniquement si l'utilisateur accepte
+  // explicitement les deux confirmations dans l'UI.
+  async _wipeAndRestore(data) {
+    const validationErrors = this._validateBackup(data);
+    if (validationErrors.length > 0) {
+      throw new Error(`Backup invalide :\n• ${validationErrors.join('\n• ')}`);
     }
 
     const uid = DB.userId();
 
-    // [C1] ── SUPPRESSION dans l'ordre FK-safe (enfants → parents) ──
-    // Les tables enfants doivent être supprimées AVANT les parents
-    // pour éviter les violations de clés étrangères.
+    // Suppression FK-safe
     const wipeOrder = [
-      // Niveau 3 (dépendent de marketing_angles ET projects)
-      'marketing_scripts',   // FK → marketing_angles
-      'marketing_copies',    // FK → marketing_angles
-
-      // Niveau 2 (dépendent de products OU projects)
-      'tasks',               // FK → projects
-      'sales',               // FK → products, clients
-      'livraisons',          // FK → products, clients
-      'marketing_data',      // FK → products
-      'marketing_angles',    // FK → products
-      'saved_offers',        // FK → products
-      'projects',            // FK → products
-
-      // Niveau 1 (indépendants ou racines)
-      'clients',
-      'ideas',
-      'fixed_expenses',
-
-      // Racine absolue (référencée par tout)
-      'products',
+      'marketing_scripts', 'marketing_copies',
+      'tasks', 'sales', 'livraisons',
+      'marketing_data', 'marketing_angles', 'saved_offers', 'projects',
+      'clients', 'ideas', 'fixed_expenses', 'products',
     ];
 
-    console.log('[Import] Début de la suppression (ordre FK-safe)...');
     for (const tableName of wipeOrder) {
-      const { error } = await NEXUS.supabase
-        .from(tableName)
-        .delete()
-        .eq('user_id', uid);
-      if (error) {
-        throw new Error(
-          `Erreur suppression table "${tableName}" : ${error.message}`
-        );
-      }
-    }
-    console.log('[Import] Suppression terminée. Réinsertion en cours...');
-
-    // ── RÉINSERTION dans l'ordre FK-safe (parents → enfants) ──
-    try {
-      const productMap = await this._reinsertTable('products',       data.products   || []);
-      const clientMap  = await this._reinsertTable('clients',        data.clients    || []);
-                         await this._reinsertTable('ideas',          data.ideas      || []);
-                         await this._reinsertTable('fixed_expenses', data.expenses   || []);
-
-      const projectMap = await this._reinsertTable('projects', data.projects || [], {
-        product_id: productMap,
-      });
-
-      const angleMap   = await this._reinsertTable('marketing_angles', data.angles || [], {
-        product_id: productMap,
-      });
-
-      await this._reinsertTable('marketing_data',    data.marketingData || [], { product_id: productMap });
-      await this._reinsertTable('saved_offers',      data.offers        || [], { product_id: productMap });
-
-      await this._reinsertTable('marketing_scripts', data.scripts || [], {
-        product_id: productMap,
-        angle_id:   angleMap,
-      });
-
-      await this._reinsertTable('marketing_copies',  data.copies  || [], {
-        product_id: productMap,
-        angle_id:   angleMap,
-      });
-
-      await this._reinsertTable('sales',      data.sales      || [], {
-        product_id: productMap,
-        client_id:  clientMap,
-      });
-
-      await this._reinsertTable('livraisons', data.livraisons || [], {
-        product_id: productMap,
-        client_id:  clientMap,
-      });
-
-      await this._reinsertTable('tasks', data.tasks || [], {
-        project_id: projectMap,
-      });
-
-    } catch (insertError) {
-      // Les données ont déjà été supprimées à ce stade.
-      // On log l'erreur avec un message clair pour l'utilisateur.
-      console.error('[Import] Erreur pendant la réinsertion :', insertError);
-      throw new Error(
-        `Importation partiellement échouée : ${insertError.message}\n` +
-        `⚠️ Vos données ont été supprimées avant l'erreur. Réessayez avec un backup valide.`
-      );
+      const { error } = await NEXUS.supabase.from(tableName).delete().eq('user_id', uid);
+      if (error) throw new Error(`Erreur suppression "${tableName}" : ${error.message}`);
     }
 
-    console.log('[Import] ✓ Importation terminée avec succès.');
+    // Réinsertion sans logique de fusion (table vide)
+    const productMap = await this._mergeTable('products',       data.products   || []);
+    const clientMap  = await this._mergeTable('clients',        data.clients    || []);
+                       await this._mergeTable('ideas',          data.ideas      || []);
+                       await this._mergeTable('fixed_expenses', data.expenses   || []);
+
+    const projectMap = await this._mergeTable('projects', data.projects || [], { product_id: productMap });
+    const angleMap   = await this._mergeTable('marketing_angles', data.angles || [], { product_id: productMap });
+
+    await this._mergeTable('marketing_data',    data.marketingData || [], { product_id: productMap });
+    await this._mergeTable('saved_offers',      data.offers        || [], { product_id: productMap });
+    await this._mergeTable('marketing_scripts', data.scripts       || [], { product_id: productMap, angle_id: angleMap });
+    await this._mergeTable('marketing_copies',  data.copies        || [], { product_id: productMap, angle_id: angleMap });
+    await this._mergeTable('sales',      data.sales      || [], { product_id: productMap, client_id: clientMap });
+    await this._mergeTable('livraisons', data.livraisons || [], { product_id: productMap, client_id: clientMap });
+    await this._mergeTable('tasks',      data.tasks      || [], { project_id: projectMap });
+
     return true;
   },
 };
