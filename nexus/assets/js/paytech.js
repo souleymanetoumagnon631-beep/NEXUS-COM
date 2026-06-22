@@ -8,7 +8,7 @@ const PayTech = {
   // ══════════════════════════════════════
   //   CRÉER UNE DEMANDE DE PAIEMENT
   // ══════════════════════════════════════
-async requestPayment({ plan, customField = {} }) {
+async requestPayment({ plan, customField = {}, successPath, cancelPath }) {
     const planConfig = NEXUS.plans[plan];
     if (!planConfig) throw new Error('Plan invalide.');
     if (planConfig.price_fcfa <= 0) throw new Error('Ce plan ne nécessite pas de paiement.');
@@ -21,10 +21,12 @@ async requestPayment({ plan, customField = {} }) {
       },
       body: JSON.stringify({
         plan,
-        email:  customField.email,
-        name:   customField.name,
-        userId: customField.userId || null,
-        origin: window.location.origin,
+        email:        customField.email,
+        name:         customField.name,
+        userId:       customField.userId || null,
+        origin:       window.location.origin,
+        successPath:  successPath || '/success.html',
+        cancelPath:   cancelPath  || '/login.html',
       }),
     });
 

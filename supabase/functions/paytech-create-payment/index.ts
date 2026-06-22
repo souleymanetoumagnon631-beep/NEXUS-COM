@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST")    return json({ error: "Method not allowed" }, 405);
 
   try {
-    const { plan, email, name, userId, origin } = await req.json();
+    const { plan, email, name, userId, origin, successPath, cancelPath } = await req.json();
 
     // ── Validation stricte — JAMAIS faire confiance au prix envoyé par le client ──
     if (!plan || !PLAN_PRICES[plan]) return json({ error: "Plan invalide" }, 400);
@@ -39,6 +39,10 @@ Deno.serve(async (req) => {
 
     const ref = `NEXUS-${plan.toUpperCase()}-${Date.now()}-${Math.random().toString(36).slice(2,8).toUpperCase()}`;
     const siteOrigin = origin || "https://ton-domaine.vercel.app";
+
+    // Chemins fournis par le client, avec valeurs par défaut sûres si absents
+    const safeSuccessPath = successPath && successPath.startsWith('/') ? successPath : '/success.html';
+    const safeCancelPath  = cancelPath  && cancelPath.startsWith('/')  ? cancelPath  : '/login.html';
 
     const body = {
       item_name:    `NEXUS — ${PLAN_NAMES[plan]}`,
@@ -48,8 +52,8 @@ Deno.serve(async (req) => {
       command_name: `Abonnement NEXUS ${PLAN_NAMES[plan]}`,
       env:          PAYTECH_ENV,
       ipn_url:      `${SUPABASE_URL}/functions/v1/paytech-webhook`,
-      success_url:  `${siteOrigin}/success.html?plan=${plan}&ref=${ref}`,
-      cancel_url:   `${siteOrigin}/login.html?cancelled=true`,
+      success_url:  `${siteOrigin}${safeSuccessPath}?plan=${plan}&ref=${ref}`,
+      cancel_url:   `${siteOrigin}${safeCancelPath}?cancelled=true`,
       custom_field: JSON.stringify({ email, name, userId, plan, ref }),
     };
 
@@ -68,10 +72,7 @@ Deno.serve(async (req) => {
 
     if (data.success !== 1 || !data.redirect_url) {
       console.error("[paytech-create-payment] Erreur PayTech:", data);
-      return json({
-  error: "Erreur PayTech",
-  paytech_response: data
-}, 400);
+      return json({ error: "Erreur PayTech", paytech_response: data }, 400);
     }
 
     return json({ redirect_url: data.redirect_url, ref, token: data.token || null });

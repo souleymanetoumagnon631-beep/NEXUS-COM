@@ -940,35 +940,91 @@ const DB = {
   },
 
   // ══════════════════════════════════════════
-  //   EXPORT EXCEL
+  //   EXPORT EXCEL — Multi-feuilles (Produits, Ventes, Clients, Livraisons, Dépenses)
   // ══════════════════════════════════════════
   exportExcel() {
-    const products = State.getProducts();
-    if (!products.length) { Toast.info('Aucune donnée à exporter.'); return; }
+    const products   = State.getProducts();
+    const sales       = State.getSales();
+    const clients     = State.getClients();
+    const livraisons  = State.getLivraisons();
+    const expenses    = State.getExpenses();
 
-    const headers = ['Produit', 'Boutique', 'Investissement', 'CA', 'Coût/u', 'Profit', 'ROI %', 'Stock'];
-    const rows = products.map(p => {
+    if (!products.length && !sales.length && !clients.length) {
+      Toast.info('Aucune donnée à exporter.');
+      return;
+    }
+
+    const escCell = v => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    const buildSheet = (name, headers, rows) => {
+      const headerRow = '<Row>' + headers.map(h => `<Cell><Data ss:Type="String">${escCell(h)}</Data></Cell>`).join('') + '</Row>';
+      const dataRows = rows.map(row =>
+        '<Row>' + row.map(c => {
+          const isNum = typeof c === 'number';
+          return `<Cell><Data ss:Type="${isNum ? 'Number' : 'String'}">${escCell(c)}</Data></Cell>`;
+        }).join('') + '</Row>'
+      ).join('');
+      return `<Worksheet ss:Name="${escCell(name)}"><Table>${headerRow}${dataRows}</Table></Worksheet>`;
+    };
+
+    // ── Feuille Produits ──
+    const prodRows = products.map(p => {
       const s = Engine.getProductStats(p.id) || {};
       return [
-        p.name, p.store || '',
+        p.name, p.store || '', p.qty || 0,
         Math.round(s.invest || 0), Math.round(s.ca || 0), Math.round(s.unit || 0),
-        Math.round(s.profit || 0), (s.roi || 0).toFixed(2), s.stock ?? 0,
+        Math.round(s.profit || 0), Number((s.roi || 0).toFixed(2)), s.stock ?? 0,
       ];
     });
 
-    const escCell = v => `"${String(v).replace(/"/g, '""')}"`;
-    const tableRows = [headers, ...rows]
-      .map(row => '<tr>' + row.map(c => `<td>${escCell(c)}</td>`).join('') + '</tr>')
-      .join('');
-    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body><table>${tableRows}</table></body></html>`;
+    // ── Feuille Ventes ──
+    const venteRows = sales.map(v => {
+      const p  = State.getProduct(v.product_id);
+      const cl = State.getClient(v.client_id);
+      return [
+        p?.name || 'Supprimé', cl?.name || 'Anonyme',
+        Math.round(v.price || 0), v.qty || 0,
+        Math.round((v.price || 0) * (v.qty || 0)),
+        Math.round(v.shipping || 0), v.channel || '', v.sale_date || '',
+      ];
+    });
 
-    const blob = new Blob(['\uFEFF' + html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    // ── Feuille Clients ──
+    const clientRows = clients.map(c => {
+      const cs = Engine.getClientStats(c.id);
+      return [c.name, c.phone || '', c.city || '', Math.round(cs.ca), cs.orders];
+    });
+
+    // ── Feuille Livraisons ──
+    const livRows = livraisons.map(l => {
+      const c = State.getClient(l.client_id);
+      const p = State.getProduct(l.product_id);
+      return [c?.name || 'Anonyme', p?.name || '—', l.qty || 1, Math.round(l.amount || 0), LIV_STATUS[l.status] || l.status, l.delivery_date || ''];
+    });
+
+    // ── Feuille Dépenses ──
+    const expRows = expenses.map(e => [e.name, Math.round(e.amount || 0), e.category || '']);
+
+    const xml = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:o="urn:schemas-microsoft-com:office:office"
+  xmlns:x="urn:schemas-microsoft-com:office:excel"
+  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+  ${buildSheet('Produits',  ['Produit','Boutique','Qté','Investissement','CA','Coût/u','Profit','ROI %','Stock'], prodRows)}
+  ${buildSheet('Ventes',    ['Produit','Client','Prix/u','Qté','CA','Livraison','Canal','Date'], venteRows)}
+  ${buildSheet('Clients',   ['Nom','Téléphone','Ville','CA Total','Commandes'], clientRows)}
+  ${buildSheet('Livraisons',['Client','Produit','Qté','Montant','Statut','Date'], livRows)}
+  ${buildSheet('Dépenses',  ['Nom','Montant','Catégorie'], expRows)}
+</Workbook>`;
+
+    const blob = new Blob(['\uFEFF' + xml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `nexus_export_${new Date().toISOString().split('T')[0]}.xls`;
+    a.download = `nexus_export_complet_${new Date().toISOString().split('T')[0]}.xls`;
     a.click();
     URL.revokeObjectURL(a.href);
-    Toast.ok('Export Excel généré.');
+    Toast.ok('Export Excel complet généré (Produits, Ventes, Clients, Livraisons, Dépenses).');
   },
 
   // ══════════════════════════════════════════
