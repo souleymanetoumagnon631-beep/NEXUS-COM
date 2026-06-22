@@ -1,10 +1,11 @@
 // ══════════════════════════════════════════
 //   NEXUS — Point d'entrée de l'application
-//   v1.1 — Corrections appliquées
+//   v1.2 — Corrections appliquées
 //
 //   CORRECTIONS :
 //   [C5] Realtime étendu à toutes les tables
 //   [C3] Vérification session robuste
+//   [C6] Message d'import aligné sur le comportement réel (fusion non-destructive)
 // ══════════════════════════════════════════
 
 (async function initNexus() {
@@ -227,6 +228,38 @@ function initRealtime() {
       Nav.refreshIfActive('finances');
       Nav.refreshIfActive('dashboard');
     },
+
+    // ── Angles marketing ──
+    onAngleChange(payload) {
+      const { eventType, new: n, old: o } = payload;
+      if      (eventType === 'INSERT') { if (!State.data.angles.find(a => a.id === n.id)) State.addAngle(n); }
+      else if (eventType === 'DELETE') State.removeAngle(o.id);
+      Nav.refreshIfActive('marketing');
+    },
+
+    // ── Scripts marketing ──
+    onScriptChange(payload) {
+      const { eventType, new: n, old: o } = payload;
+      if      (eventType === 'INSERT') { if (!State.data.scripts.find(s => s.id === n.id)) State.addScript(n); }
+      else if (eventType === 'DELETE') State.removeScript(o.id);
+      Nav.refreshIfActive('marketing');
+    },
+
+    // ── Copies marketing ──
+    onCopyChange(payload) {
+      const { eventType, new: n, old: o } = payload;
+      if      (eventType === 'INSERT') { if (!State.data.copies.find(c => c.id === n.id)) State.addCopy(n); }
+      else if (eventType === 'DELETE') State.removeCopy(o.id);
+      Nav.refreshIfActive('marketing');
+    },
+
+    // ── Offres sauvegardées ──
+    onOfferChange(payload) {
+      const { eventType, new: n, old: o } = payload;
+      if      (eventType === 'INSERT') { if (!State.data.offers.find(of => of.id === n.id)) State.addOffer(n); }
+      else if (eventType === 'DELETE') State.removeOffer(o.id);
+      Nav.refreshIfActive('relances');
+    },
   });
 }
 
@@ -359,14 +392,31 @@ Pages.compte = {
 
 // ══════════════════════════════════════════
 //   IMPORT JSON
+//
+//   [C6] CORRIGÉ : le message reflète maintenant le comportement RÉEL
+//   de DB.importBackup() — une FUSION NON-DESTRUCTIVE :
+//     • Les données déjà présentes en base ne sont jamais supprimées
+//     • Seuls les enregistrements absents (nouveaux id) sont ajoutés
+//     • Aucune perte de données possible, même en cas d'erreur partielle
+//
+//   L'ancien message ("remplacera TOUTES vos données actuelles") était
+//   FAUX et faisait croire à un écrasement destructeur qui n'a jamais
+//   lieu dans le code réel. Corrigé pour éviter la confusion et la
+//   méfiance injustifiée de l'utilisateur envers la fonctionnalité.
 // ══════════════════════════════════════════
 async function handleImportFile(event) {
   const file = event.target.files[0];
   event.target.value = '';
   if (!file) return;
 
-  if (!confirm('⚠️ Importer ce fichier remplacera TOUTES vos données actuelles. Continuer ?')) return;
-  if (!confirm('Dernière confirmation : vos données actuelles seront définitivement écrasées.')) return;
+  const confirmed = confirm(
+    'Importer ce fichier va AJOUTER les données qu\'il contient à vos données actuelles.\n\n' +
+    '• Les enregistrements déjà présents en base seront conservés tels quels (aucun écrasement).\n' +
+    '• Seuls les nouveaux enregistrements (absents de votre compte) seront importés.\n' +
+    '• Aucune donnée existante ne sera supprimée ou modifiée.\n\n' +
+    'Continuer l\'importation ?'
+  );
+  if (!confirmed) return;
 
   await Action.run(
     async () => {
@@ -375,6 +425,6 @@ async function handleImportFile(event) {
       Badges.update();
       Nav.go(State.ui.currentPage || 'dashboard');
     },
-    { successMsg: 'Importation réussie.', errorMsg: 'Échec de l\'importation.' }
+    { successMsg: 'Importation réussie : les nouvelles données ont été ajoutées.', errorMsg: 'Échec de l\'importation.' }
   );
 }

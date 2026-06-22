@@ -259,7 +259,14 @@ Pages.relances = {
     prev.textContent = `${selected.length} client(s) sélectionné(s)\n\n---\n\n${msg}`;
   },
 
-  sendRecWhatsApp() {
+  // ── [FIX popup-blocker] ──
+  // Les navigateurs bloquent window.open() appelé hors d'un clic direct
+  // (donc tout appel dans un setTimeout > 0 est bloqué, sauf le premier).
+  // Solution : ouvrir TOUTES les fenêtres immédiatement (pendant le clic),
+  // puis rediriger chaque fenêtre déjà ouverte vers son URL WhatsApp
+  // une fois celle-ci construite. Comme la fenêtre existe déjà,
+  // la rediriger plus tard via .location n'est pas bloqué.
+  async sendRecWhatsApp() {
     const selected = [...$$('.rec-client-check:checked')];
     if (!selected.length) return Toast.err('Sélectionnez au moins un client.');
 
@@ -267,19 +274,42 @@ Pages.relances = {
     const product   = productId ? State.getProduct(productId) : null;
     const note      = $('r-rec-note')?.value || '';
 
+    const targets = selected
+      .map(el => State.getClient(el.dataset.id))
+      .filter(client => client?.phone);
+
+    if (!targets.length) {
+      return Toast.err('Aucun des clients sélectionnés n\'a de numéro de téléphone.');
+    }
+
+    const skipped = selected.length - targets.length;
+
+    // Ouvrir toutes les fenêtres MAINTENANT (synchrone, dans le clic) → non bloqué
+    const windows = targets.map(() => window.open('', '_blank'));
+    const blockedCount = windows.filter(w => !w).length;
+
+    if (blockedCount === targets.length) {
+      Toast.err('Votre navigateur bloque les fenêtres pop-up. Autorisez les pop-up pour ce site puis réessayez.');
+      return;
+    }
+
     let sent = 0;
-    selected.forEach((el, i) => {
-      const client = State.getClient(el.dataset.id);
-      if (!client?.phone) return;
+    targets.forEach((client, i) => {
+      const win = windows[i];
+      if (!win) return; // cette fenêtre précise a été bloquée
       const phone = client.phone.replace(/\D/g, '');
       let msg = `Bonjour ${client.name} ! 👋\n\n`;
       if (product) msg += `Nous avons une nouveauté pour vous : *${product.name}*.\n\n`;
       if (note)    msg += `${note}\n\n`;
       msg += `En tant que client fidèle, vous bénéficiez d'une offre exclusive.\n\nRépondez à ce message pour en savoir plus ! 🎁`;
-      setTimeout(() => window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank'), i * 500);
+      win.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
       sent++;
     });
-    Toast.ok(`${sent} message(s) envoyé(s).`);
+
+    let report = `${sent} message(s) ouvert(s) dans WhatsApp.`;
+    if (skipped) report += ` ${skipped} client(s) ignoré(s) (pas de numéro).`;
+    if (blockedCount) report += ` ${blockedCount} fenêtre(s) bloquée(s) par le navigateur.`;
+    (blockedCount ? Toast.warn : Toast.ok)(report);
   },
 
   // ══════════════════════════════════════
@@ -458,23 +488,37 @@ Pages.relances = {
     );
   },
 
+  // ── [FIX popup-blocker] même principe que sendRecWhatsApp ──
   sendOffreWhatsApp() {
     const msg = $('o-preview')?.textContent || '';
     if (!msg || msg === 'Remplissez le formulaire pour prévisualiser...') {
       return Toast.err('Créez un message d\'abord.');
     }
-    const clients = State.getClients();
-    if (!clients.length) return Toast.err('Aucun client enregistré.');
+    const clients = State.getClients().filter(c => c.phone);
+    if (!clients.length) return Toast.err('Aucun client avec un numéro de téléphone.');
+
+    // Ouvrir toutes les fenêtres immédiatement (dans le contexte du clic)
+    const windows = clients.map(() => window.open('', '_blank'));
+    const blockedCount = windows.filter(w => !w).length;
+
+    if (blockedCount === clients.length) {
+      Toast.err('Votre navigateur bloque les fenêtres pop-up. Autorisez les pop-up pour ce site puis réessayez.');
+      return;
+    }
 
     let sent = 0;
     clients.forEach((c, i) => {
-      if (!c.phone) return;
+      const win = windows[i];
+      if (!win) return;
       const phone = c.phone.replace(/\D/g, '');
       const personalMsg = msg.replace('[Prénom]', c.name);
-      setTimeout(() => window.open(`https://wa.me/${phone}?text=${encodeURIComponent(personalMsg)}`, '_blank'), i * 500);
+      win.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(personalMsg)}`;
       sent++;
     });
-    Toast.ok(`${sent} message(s) envoyé(s).`);
+
+    let report = `${sent} message(s) ouvert(s) dans WhatsApp.`;
+    if (blockedCount) report += ` ${blockedCount} fenêtre(s) bloquée(s) par le navigateur.`;
+    (blockedCount ? Toast.warn : Toast.ok)(report);
   },
 
   copyOffre() {
