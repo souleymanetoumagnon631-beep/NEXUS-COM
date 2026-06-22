@@ -1,16 +1,17 @@
 // ══════════════════════════════════════════
 //   NEXUS — Point d'entrée de l'application
-//   Init · Auth Guard · Routing
+//   v1.1 — Corrections appliquées
+//
+//   CORRECTIONS :
+//   [C5] Realtime étendu à toutes les tables
+//   [C3] Vérification session robuste
 // ══════════════════════════════════════════
 
-// ══════════════════════════════════════════
-//   INIT PRINCIPALE
-// ══════════════════════════════════════════
 (async function initNexus() {
   try {
     // ── 1. Guard Auth ──
     const ok = await Auth.guardDashboard();
-    if (!ok) return; // Redirigé vers login
+    if (!ok) return;
 
     // ── 2. Charger toutes les données Supabase ──
     await State.init();
@@ -26,13 +27,13 @@
     // ── 5. Enregistrer les renderers de pages ──
     registerPages();
 
-    // ── 6. Render dashboard (page par défaut) ──
+    // ── 6. Render dashboard ──
     Pages.dashboard.render();
 
     // ── 7. Cacher le loader, afficher l'app ──
     showApp();
 
-    // ── 8. Init realtime Supabase ──
+    // ── 8. Init realtime Supabase (étendu) ──
     initRealtime();
 
     // ── 9. Keyboard shortcuts ──
@@ -92,9 +93,9 @@ function initUserUI() {
   const user = window.__SESSION__?.user;
   if (!user) return;
 
-  const name      = user.user_metadata?.full_name || user.email?.split('@')[0] || 'U';
-  const email     = user.email || '';
-  const initials  = name.charAt(0).toUpperCase();
+  const name     = user.user_metadata?.full_name || user.email?.split('@')[0] || 'U';
+  const email    = user.email || '';
+  const initials = name.charAt(0).toUpperCase();
 
   const avatar = $('user-avatar');
   if (avatar) avatar.textContent = initials;
@@ -131,26 +132,100 @@ function registerPages() {
 }
 
 // ══════════════════════════════════════════
-//   REALTIME SUPABASE
+//   [C5] REALTIME SUPABASE — ÉTENDU
+//   Toutes les tables sont maintenant écoutées.
+//   Chaque événement met à jour le State local
+//   et rafraîchit la page active si nécessaire.
 // ══════════════════════════════════════════
 function initRealtime() {
   DB.realtime.subscribeAll({
+
+    // ── Ventes ──
     onNewSale(sale) {
-      const exists = State.getSale(sale.id);
-      if (!exists) {
+      if (!State.getSale(sale.id)) {
         State.addSale(sale);
         Badges.update();
         Nav.refreshIfActive('dashboard');
+        Nav.refreshIfActive('ventes');
+        Nav.refreshIfActive('revenus');
         Toast.info('Nouvelle vente enregistrée en temps réel');
       }
     },
+
+    // ── Livraisons ──
     onLivraisonChange(payload) {
-      const { eventType, new: newRecord, old: oldRecord } = payload;
-      if (eventType === 'INSERT') State.addLivraison(newRecord);
-      else if (eventType === 'UPDATE') State.updateLivraison(newRecord.id, newRecord);
-      else if (eventType === 'DELETE') State.removeLivraison(oldRecord.id);
+      const { eventType, new: n, old: o } = payload;
+      if      (eventType === 'INSERT') State.addLivraison(n);
+      else if (eventType === 'UPDATE') State.updateLivraison(n.id, n);
+      else if (eventType === 'DELETE') State.removeLivraison(o.id);
       Badges.update();
       Nav.refreshIfActive('livraisons');
+      Nav.refreshIfActive('dashboard');
+    },
+
+    // ── Produits ──
+    onProductChange(payload) {
+      const { eventType, new: n, old: o } = payload;
+      if      (eventType === 'INSERT') State.addProduct(n);
+      else if (eventType === 'UPDATE') State.updateProduct(n.id, n);
+      else if (eventType === 'DELETE') State.removeProduct(o.id);
+      Badges.update();
+      Nav.refreshIfActive('achats');
+      Nav.refreshIfActive('dashboard');
+      Nav.refreshIfActive('rentabilite');
+      Nav.refreshIfActive('produits');
+    },
+
+    // ── Clients ──
+    onClientChange(payload) {
+      const { eventType, new: n, old: o } = payload;
+      if      (eventType === 'INSERT') State.addClient(n);
+      else if (eventType === 'UPDATE') State.updateClient(n.id, n);
+      else if (eventType === 'DELETE') State.removeClient(o.id);
+      Badges.update();
+      Nav.refreshIfActive('clients');
+    },
+
+    // ── Projets ──
+    onProjectChange(payload) {
+      const { eventType, new: n, old: o } = payload;
+      if      (eventType === 'INSERT') State.addProject(n);
+      else if (eventType === 'UPDATE') State.updateProject(n.id, n);
+      else if (eventType === 'DELETE') State.removeProject(o.id);
+      Badges.update();
+      Nav.refreshIfActive('projets');
+      Nav.refreshIfActive('dashboard');
+    },
+
+    // ── Tâches ──
+    onTaskChange(payload) {
+      const { eventType, new: n, old: o } = payload;
+      if      (eventType === 'INSERT') State.addTask(n);
+      else if (eventType === 'UPDATE') State.updateTask(n.id, n);
+      else if (eventType === 'DELETE') State.removeTask(o.id);
+      Badges.update();
+      Nav.refreshIfActive('taches');
+      Nav.refreshIfActive('dashboard');
+    },
+
+    // ── Idées ──
+    onIdeaChange(payload) {
+      const { eventType, new: n, old: o } = payload;
+      if      (eventType === 'INSERT') State.addIdea(n);
+      else if (eventType === 'UPDATE') State.updateIdea(n.id, n);
+      else if (eventType === 'DELETE') State.removeIdea(o.id);
+      Badges.update();
+      Nav.refreshIfActive('idees');
+    },
+
+    // ── Dépenses ──
+    onExpenseChange(payload) {
+      const { eventType, new: n, old: o } = payload;
+      if      (eventType === 'INSERT') State.addExpense(n);
+      else if (eventType === 'UPDATE') State.updateExpense(n.id, n);
+      else if (eventType === 'DELETE') State.removeExpense(o.id);
+      Nav.refreshIfActive('finances');
+      Nav.refreshIfActive('dashboard');
     },
   });
 }
@@ -259,14 +334,19 @@ Pages.compte = {
     await Action.run(
       async () => {
         const uid = DB.userId();
-        const tables = [
-          'sales','livraisons','tasks','ideas','fixed_expenses',
-          'marketing_data','marketing_angles','marketing_scripts',
-          'marketing_copies','saved_offers','projects','clients','products'
+
+        // [C1] Ordre FK-safe pour la réinitialisation aussi
+        const wipeOrder = [
+          'marketing_scripts', 'marketing_copies',
+          'tasks', 'sales', 'livraisons',
+          'marketing_data', 'marketing_angles', 'saved_offers', 'projects',
+          'clients', 'ideas', 'fixed_expenses', 'products',
         ];
-        for (const table of tables) {
+
+        for (const table of wipeOrder) {
           await NEXUS.supabase.from(table).delete().eq('user_id', uid);
         }
+
         await State.init();
         Badges.update();
         Pages.dashboard.render();
@@ -276,6 +356,10 @@ Pages.compte = {
     );
   },
 };
+
+// ══════════════════════════════════════════
+//   IMPORT JSON
+// ══════════════════════════════════════════
 async function handleImportFile(event) {
   const file = event.target.files[0];
   event.target.value = '';
