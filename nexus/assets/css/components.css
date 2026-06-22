@@ -24,6 +24,13 @@
 .btn-warning:hover{background:rgba(251,191,36,0.18)}
 .btn-sm{padding:6px 13px;font-size:.78rem;border-radius:8px}
 .btn-icon{width:33px;height:33px;padding:0;justify-content:center;border-radius:8px}
+
+/* ── Conteneurs Flex Responsives ── */
+.flex-mobile{align-items:center;gap:8px;flex-wrap:wrap}
+@media(max-width:480px){
+  .flex-mobile{gap:6px}
+  .btn-sm{padding:5px 10px;font-size:.72rem}
+}
 .sb-btn.export-alt{background:rgba(124,111,255,0.09);color:var(--accent2);border:1px solid rgba(124,111,255,0.22)}
 .sb-btn.export-alt:hover{background:rgba(124,111,255,0.16);transform:translateX(3px)}
 
@@ -142,7 +149,7 @@ td{padding:12px 15px;vertical-align:middle}
 .chart-wrap canvas{max-height:280px}
 
 /* ── MODAL ── */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.78);backdrop-filter:blur(9px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.78);backdrop-filter:blur(9px);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .25s}
 .modal-overlay.open{opacity:1;pointer-events:all}
 .modal{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);width:100%;max-width:560px;max-height:90vh;overflow-y:auto;transform:scale(.94) translateY(22px);transition:transform .3s cubic-bezier(.4,0,.2,1);box-shadow:var(--shadow-lg);position:relative}
 .modal::before{content:'';position:absolute;top:0;left:25%;right:25%;height:1px;background:linear-gradient(90deg,transparent,rgba(124,111,255,0.6),transparent)}
@@ -152,6 +159,11 @@ td{padding:12px 15px;vertical-align:middle}
 .modal-cls{width:32px;height:32px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;cursor:pointer;color:var(--text2);display:flex;align-items:center;justify-content:center;font-size:14px;transition:var(--tr)}
 .modal-cls:hover{background:var(--red-bg);color:var(--red);border-color:var(--red-b)}
 .modal-bdy{padding:20px 24px 24px}
+@media(max-width:480px){
+  .modal{max-width:100%}
+  .modal-hdr{padding:18px 20px 0}
+  .modal-bdy{padding:16px 20px 20px}
+}
 
 /* ── TOAST ── */
 #toasts{position:fixed;bottom:24px;right:24px;z-index:300;display:flex;flex-direction:column;gap:8px}
@@ -167,12 +179,15 @@ td{padding:12px 15px;vertical-align:middle}
 .task-filter-btn.active{background:linear-gradient(135deg,var(--accent),#8b5cf6);color:#fff;border-color:transparent;box-shadow:0 2px 10px rgba(124,111,255,0.3)}
 .task-filters{display:flex;gap:7px;padding:14px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap}
 
-.relance-tab{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:9px;font-size:.84rem;font-weight:600;background:var(--surface2);color:var(--text2);border:1px solid var(--border);cursor:pointer;transition:var(--tr)}
+.relance-tab{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:9px;font-size:.84rem;font-weight:600;background:var(--surface2);color:var(--text2);border:1px solid var(--border);cursor:pointer;transition:var(--tr);white-space:nowrap}
 .relance-tab:hover{background:var(--surface3);color:var(--text)}
 .relance-tab.active{background:linear-gradient(135deg,var(--accent),#8b5cf6);color:#fff;border-color:transparent;box-shadow:0 4px 16px rgba(124,111,255,0.3)}
 .relance-panel{animation:fadeIn .3s ease}
+@media(max-width:480px){
+  .relance-tab{padding:7px 12px;font-size:.78rem;gap:5px}
+}
 
-.mkt-tab{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border-radius:9px 9px 0 0;font-size:.84rem;font-weight:600;background:transparent;color:var(--text2);border:1px solid transparent;border-bottom:none;cursor:pointer;transition:var(--tr);white-space:nowrap;margin-bottom:-1px;position:relative}
+.mkt-tab{display:inline-flex;align-items:center;gap:7px;padding:10px 18px;border-radius:9px 9px 0 0;font-size:.84rem;font-weight:600;background:transparent;color:var(--text2);border:1px solid transparent;border-bottom:none;cursor:pointer;transition:var(--tr);white-space:nowrap;margin-bottom:-1px;position:relative}
 .mkt-tab:hover{color:var(--text);background:rgba(124,111,255,0.04)}
 .mkt-tab.active{background:var(--surface);color:var(--accent3);border-color:var(--border);border-bottom-color:var(--surface);font-weight:700}
 .mkt-panel{animation:fadeIn .3s ease}

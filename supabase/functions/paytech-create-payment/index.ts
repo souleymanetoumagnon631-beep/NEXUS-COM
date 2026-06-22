@@ -38,7 +38,32 @@ Deno.serve(async (req) => {
     if (!email)                      return json({ error: "Email requis" }, 400);
 
     const ref = `NEXUS-${plan.toUpperCase()}-${Date.now()}-${Math.random().toString(36).slice(2,8).toUpperCase()}`;
-    const siteOrigin = origin || "https://ton-domaine.vercel.app";
+
+    // Validation stricte de l'origin pour éviter SSRF
+    let siteOrigin: string;
+    if (origin) {
+      try {
+        const url = new URL(origin);
+        if (!['http:', 'https:'].includes(url.protocol)) {
+          throw new Error('Protocol non autorisé');
+        }
+        // Bloquer les adresses privées (SSRF)
+        const blockedHosts = ['localhost', '127.0.0.1', '0.0.0.0'];
+        const isPrivate = url.hostname === 'localhost' ||
+                          url.hostname === '127.0.0.1' ||
+                          url.hostname.startsWith('192.168.') ||
+                          url.hostname.startsWith('10.') ||
+                          url.hostname.startsWith('172.');
+        if (isPrivate || blockedHosts.includes(url.hostname)) {
+          throw new Error('Host interdit');
+        }
+        siteOrigin = url.origin;
+      } catch {
+        siteOrigin = "https://ton-domaine.vercel.app";
+      }
+    } else {
+      siteOrigin = "https://ton-domaine.vercel.app";
+    }
 
     // Chemins fournis par le client, avec valeurs par défaut sûres si absents
     const safeSuccessPath = successPath && successPath.startsWith('/') ? successPath : '/success.html';

@@ -133,10 +133,15 @@ Pages.clients = {
     const name = str('cm-name');
     if (!name) return Toast.err('Nom requis.');
 
+    const phone = str('cm-phone');
+    if (phone && !/^\+?[1-9]\d{1,14}$/.test(phone)) {
+      return Toast.err('Numéro de téléphone invalide (format E.164 requis).');
+    }
+
     const id      = State.modals.editClientId;
     const payload = {
       name,
-      phone:   str('cm-phone'),
+      phone:   phone || null,
       city:    str('cm-city'),
       address: str('cm-address'),
       notes:   str('cm-notes'),

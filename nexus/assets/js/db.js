@@ -775,9 +775,11 @@ const DB = {
     },
 
     async getHistory() {
+      const uid = await DB._getUserId();
       const { data, error } = await NEXUS.supabase
         .from('subscriptions')
         .select('*')
+        .eq('user_id', uid)
         .order('created_at', { ascending: false });
       if (error) DB.handleError(error, 'subscriptions.getHistory');
       return data || [];
@@ -787,9 +789,11 @@ const DB = {
   payments: {
 
     async getHistory() {
+      const uid = await DB._getUserId();
       const { data, error } = await NEXUS.supabase
         .from('payments')
         .select('*')
+        .eq('user_id', uid)
         .order('created_at', { ascending: false });
       if (error) DB.handleError(error, 'payments.getHistory');
       return data || [];
@@ -1241,8 +1245,6 @@ const DB = {
     // - Les données déjà présentes en base sont INTACTES
     // - Les enregistrements déjà insérés restent en base
     // - Aucune perte de données possible
-
-    console.log('[Import] Validation OK. Début de la fusion non-destructive...');
 
     const allWarnings = [];
     const collect = (result) => { allWarnings.push(...result.warnings); return result.idMap; };

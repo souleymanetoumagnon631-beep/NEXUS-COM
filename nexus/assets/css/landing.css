@@ -189,4 +189,22 @@
   .l-modules-grid{grid-template-columns:1fr 1fr}
   .l-hero-title{font-size:2.2rem}
   .l-pricing-row{flex-direction:column;align-items:center}
+  .l-hero{padding:40px 20px 30px}
+  .l-section-label, .l-section-title, .l-section-sub{font-size:.85rem}
+  .l-section-title{margin-bottom:10px}
+  .l-features,.l-modules,.l-cta-section,.l-pricing{padding:40px 20px}
+  .l-section-sub{margin-bottom:30px}
+  .l-feature-card{padding:24px 20px}
+  .l-plan-card{padding:24px 20px}
+  .l-stats{gap:1px;border-radius:12px}
+  .l-stat{padding:16px 14px}
+}
+@media(max-width:400px){
+  .l-modules-grid,.l-features-grid{grid-template-columns:1fr}
+  .l-hero-title{font-size:1.8rem}
+  .l-nav-cta, .l-btn-main{font-size:.87rem;padding:14px 24px}
+  .l-price-pill{padding:6px 12px;font-size:.75rem}
+  .l-feature-icon{width:42px;height:42px;margin-bottom:14px}
+  .l-module-card{padding:14px 12px}
+  .l-plan-card-inner{padding-left:22px}
 }
