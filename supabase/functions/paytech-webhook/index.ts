@@ -108,17 +108,35 @@ Deno.serve(async (req) => {
     let userId = custom.userId || null;
 
     if (!userId && custom.email) {
-      const { data: usersList, error: listError } =
-        await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      const targetEmail = custom.email.toLowerCase();
+      const PER_PAGE = 1000;
+      let page = 1;
+      let found = null;
 
-      if (listError) {
-        console.error("[PayTech Webhook] Erreur recherche utilisateur:", listError);
-      } else {
-        const found = usersList.users.find(
-          u => u.email?.toLowerCase() === custom.email.toLowerCase()
-        );
-        if (found) userId = found.id;
+      while (!found) {
+        const { data: usersList, error: listError } =
+          await supabaseAdmin.auth.admin.listUsers({ page, perPage: PER_PAGE });
+
+        if (listError) {
+          console.error("[PayTech Webhook] Erreur recherche utilisateur:", listError);
+          break;
+        }
+
+        found = usersList.users.find(u => u.email?.toLowerCase() === targetEmail) || null;
+
+        // Arrêt si la page retournée est plus petite que PER_PAGE (dernière page)
+        if (usersList.users.length < PER_PAGE) break;
+
+        page++;
+
+        // Garde-fou anti-boucle infinie (100 pages = 100 000 utilisateurs max)
+        if (page > 100) {
+          console.error("[PayTech Webhook] Limite de pagination atteinte (100 pages) sans trouver l'utilisateur.");
+          break;
+        }
       }
+
+      if (found) userId = found.id;
     }
 
     if (!userId) {
