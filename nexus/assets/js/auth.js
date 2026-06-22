@@ -119,6 +119,16 @@ const Auth = {
       const daysLeft = Math.ceil(
         (new Date(sub.trial_ends_at) - new Date()) / 86400000
       );
+
+      if (daysLeft <= 0) {
+        return {
+          label: 'Essai expiré',
+          color: 'var(--red)',
+          icon:  '⛔',
+          daysLeft: 0,
+        };
+      }
+
       return {
         label: `Essai — ${daysLeft}j restant(s)`,
         color: 'var(--yellow)',

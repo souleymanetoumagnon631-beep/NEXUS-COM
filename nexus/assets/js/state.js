@@ -224,6 +224,14 @@ const State = {
     this.data.sales    = this.data.sales.filter(s => s.product_id !== id);
     this._buildIndexes();
     this._invalidateCache();
+
+    // Nettoyer le cache marketing lié à ce produit (évite données obsolètes affichées)
+    if (window.Pages?.marketing?._mktDataCache) {
+      delete Pages.marketing._mktDataCache[id];
+      if (Pages.marketing._currentPid === id) {
+        Pages.marketing._currentPid = '';
+      }
+    }
   },
 
   // ── Sales ──

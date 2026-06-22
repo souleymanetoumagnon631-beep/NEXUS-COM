@@ -34,12 +34,14 @@ Pages.finances = {
         <div class="fin-val" style="color:var(--yellow)">${fF(fin.avgMonthCA)}</div>
         <div class="fin-sub">Sur l'historique</div>
       </div>
-      <div class="fin-card" style="border-color:rgba(124,111,255,0.2)">
+      <div class="fin-card" style="border-color:${fin.breakevenWarning ? 'rgba(248,113,113,0.2)' : 'rgba(124,111,255,0.2)'}">
         <div class="fin-label">Seuil de Rentabilité</div>
-        <div class="fin-val" style="color:var(--accent2)">
+        <div class="fin-val" style="color:${fin.breakevenWarning ? 'var(--red)' : 'var(--accent2)'}">
           ${fin.breakeven ? fin.breakeven + ' u.' : '—'}
         </div>
-        <div class="fin-sub">Unités à vendre / mois</div>
+        <div class="fin-sub" style="${fin.breakevenWarning ? 'color:var(--red)' : ''}">
+          ${fin.breakevenWarning || 'Unités à vendre / mois'}
+        </div>
       </div>`;
   },
 

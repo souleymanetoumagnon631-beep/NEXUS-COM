@@ -360,11 +360,17 @@ const SubscriptionUI = {
         ${badge.icon} ${badge.label}
       </span>`;
 
-    // Alerte trial presque expiré
-    if (sub.plan === 'trial' && badge.daysLeft <= 2) {
-      setTimeout(() => {
-        Toast.warn(`Votre essai expire dans ${badge.daysLeft} jour(s). Abonnez-vous pour continuer !`);
-      }, 2000);
+    // Alerte trial presque expiré ou déjà expiré
+    if (sub.plan === 'trial') {
+      if (badge.daysLeft === 0) {
+        setTimeout(() => {
+          Toast.err('Votre essai gratuit est terminé. Abonnez-vous pour continuer à utiliser NEXUS.');
+        }, 2000);
+      } else if (badge.daysLeft <= 2) {
+        setTimeout(() => {
+          Toast.warn(`Votre essai expire dans ${badge.daysLeft} jour(s). Abonnez-vous pour continuer !`);
+        }, 2000);
+      }
     }
   },
 };

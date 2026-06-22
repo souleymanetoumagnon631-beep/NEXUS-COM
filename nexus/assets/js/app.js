@@ -175,6 +175,7 @@ function initRealtime() {
       Nav.refreshIfActive('dashboard');
       Nav.refreshIfActive('rentabilite');
       Nav.refreshIfActive('produits');
+      Nav.refreshIfActive('marketing');
     },
 
     // ── Clients ──
@@ -420,10 +421,18 @@ async function handleImportFile(event) {
 
   await Action.run(
     async () => {
-      await DB.importBackup(file);
+      const result = await DB.importBackup(file);
       await State.init();
       Badges.update();
       Nav.go(State.ui.currentPage || 'dashboard');
+
+      if (result.warnings.length) {
+        Toast.warn(
+          `Importation terminée avec ${result.warnings.length} avertissement(s) : ` +
+          'certains liens (produit/client/angle) n\'ont pas pu être restaurés. Voir la console pour le détail.'
+        );
+        console.warn('[Import] Avertissements FK :', result.warnings);
+      }
     },
     { successMsg: 'Importation réussie : les nouvelles données ont été ajoutées.', errorMsg: 'Échec de l\'importation.' }
   );

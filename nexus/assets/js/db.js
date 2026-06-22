@@ -888,6 +888,26 @@ const DB = {
           { event: '*', schema: 'public', table: 'fixed_expenses', filter: `user_id=eq.${uid}` },
           payload => callbacks.onExpenseChange?.(payload))
 
+        // ── Angles marketing ──
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'marketing_angles', filter: `user_id=eq.${uid}` },
+          payload => callbacks.onAngleChange?.(payload))
+
+        // ── Scripts marketing ──
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'marketing_scripts', filter: `user_id=eq.${uid}` },
+          payload => callbacks.onScriptChange?.(payload))
+
+        // ── Copies marketing ──
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'marketing_copies', filter: `user_id=eq.${uid}` },
+          payload => callbacks.onCopyChange?.(payload))
+
+        // ── Offres sauvegardées ──
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'saved_offers', filter: `user_id=eq.${uid}` },
+          payload => callbacks.onOfferChange?.(payload))
+
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') {
             console.log('[Realtime] ✓ Écoute active sur toutes les tables');
@@ -979,14 +999,25 @@ const DB = {
       return errors;
     }
 
-    // Structure obligatoire
+    // ── Structure obligatoire ──
     if (!Array.isArray(data.products)) errors.push('Champ "products" manquant ou invalide.');
     if (!Array.isArray(data.sales))    errors.push('Champ "sales" manquant ou invalide.');
     if (!Array.isArray(data.clients))  errors.push('Champ "clients" manquant ou invalide.');
 
+    // ── Champs optionnels mais doivent être des tableaux s'ils sont présents ──
+    const optionalArrayFields = [
+      'livraisons', 'projects', 'tasks', 'ideas', 'expenses',
+      'angles', 'scripts', 'copies', 'offers', 'marketingData',
+    ];
+    optionalArrayFields.forEach(field => {
+      if (data[field] !== undefined && !Array.isArray(data[field])) {
+        errors.push(`Champ "${field}" présent mais invalide (doit être une liste).`);
+      }
+    });
+
     if (errors.length) return errors;
 
-    // Vérification cohérence des FK dans le fichier lui-même
+    // ── Vérification cohérence des FK dans le fichier lui-même ──
     const productIds = new Set(data.products.map(p => p.id).filter(Boolean));
     const clientIds  = new Set(data.clients.map(c => c.id).filter(Boolean));
     const projectIds = new Set((data.projects || []).map(p => p.id).filter(Boolean));
@@ -1012,11 +1043,30 @@ const DB = {
     (data.scripts || []).forEach(s => {
       if (s.angle_id && !angleIds.has(s.angle_id))
         errors.push(`Script "${s.id}" référence un angle inconnu (${s.angle_id}).`);
+      if (s.product_id && !productIds.has(s.product_id))
+        errors.push(`Script "${s.id}" référence un produit inconnu (${s.product_id}).`);
     });
 
     (data.copies || []).forEach(c => {
       if (c.angle_id && !angleIds.has(c.angle_id))
         errors.push(`Copy "${c.id}" référence un angle inconnu (${c.angle_id}).`);
+      if (c.product_id && !productIds.has(c.product_id))
+        errors.push(`Copy "${c.id}" référence un produit inconnu (${c.product_id}).`);
+    });
+
+    (data.offers || []).forEach(o => {
+      if (o.product_id && !productIds.has(o.product_id))
+        errors.push(`Offre "${o.id}" référence un produit inconnu (${o.product_id}).`);
+    });
+
+    (data.marketingData || []).forEach(m => {
+      if (m.product_id && !productIds.has(m.product_id))
+        errors.push(`Donnée marketing référence un produit inconnu (${m.product_id}).`);
+    });
+
+    (data.angles || []).forEach(a => {
+      if (a.product_id && !productIds.has(a.product_id))
+        errors.push(`Angle "${a.id}" référence un produit inconnu (${a.product_id}).`);
     });
 
     return errors;
@@ -1027,12 +1077,12 @@ const DB = {
   // on n'insère QUE ce qui est absent.
   // Retourne un idMap { ancien_id → nouveau_id_en_base }.
   async _mergeTable(table, records, fkMaps = {}) {
-    const idMap = {};
-    if (!records || !records.length) return idMap;
+    const idMap   = {};
+    const warnings = [];
+    if (!records || !records.length) return { idMap, warnings };
 
     const uid = DB.userId();
 
-    // 1. Charger les IDs déjà présents en base pour cette table
     const { data: existing, error: fetchError } = await NEXUS.supabase
       .from(table)
       .select('id')
@@ -1042,25 +1092,32 @@ const DB = {
 
     const existingIds = new Set((existing || []).map(r => r.id));
 
-    // 2. Séparer : nouveaux enregistrements vs déjà présents
     const toInsert = [];
     const origIds  = [];
 
     records.forEach(r => {
       if (existingIds.has(r.id)) {
-        // Déjà en base : l'ID reste le même, on l'ajoute au map directement
         idMap[r.id] = r.id;
       } else {
-        // Absent : à insérer
         const {
           id, created_at, updated_at, user_id,
           product, client, project, angle,
           ...rest
         } = r;
 
-        // Remplacer les FK par les nouveaux IDs mappés
+        // Remplacer les FK par les nouveaux IDs mappés — et avertir si la cible est introuvable
         Object.entries(fkMaps).forEach(([field, map]) => {
-          if (rest[field]) rest[field] = map[rest[field]] || null;
+          if (rest[field]) {
+            const mapped = map[rest[field]];
+            if (mapped) {
+              rest[field] = mapped;
+            } else {
+              warnings.push(
+                `${table} (id ${r.id}) : référence "${field}" introuvable — le lien a été supprimé pour cet enregistrement.`
+              );
+              rest[field] = null;
+            }
+          }
         });
 
         toInsert.push({ ...rest, user_id: uid });
@@ -1068,8 +1125,6 @@ const DB = {
       }
     });
 
-    // 3. Insérer uniquement les nouveaux, par batches de 100
-    //    pour éviter les timeouts sur les gros backups
     if (toInsert.length > 0) {
       const BATCH_SIZE = 100;
       for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
@@ -1087,7 +1142,6 @@ const DB = {
           );
         }
 
-        // Construire le map avec les nouveaux IDs retournés
         batchOrig.forEach((origId, idx) => {
           if (origId && inserted[idx]?.id) {
             idMap[origId] = inserted[idx].id;
@@ -1101,7 +1155,7 @@ const DB = {
       console.log(`[Import] Table "${table}" : ${toInsert.length} insérés, ${skipped} ignorés (déjà présents).`);
     }
 
-    return idMap;
+    return { idMap, warnings };
   },
 
   // ── Import principal : FUSION NON-DESTRUCTIVE ──
@@ -1132,53 +1186,58 @@ const DB = {
     // - Les enregistrements déjà insérés restent en base
     // - Aucune perte de données possible
 
-    const productMap = await this._mergeTable('products',       data.products   || []);
-    const clientMap  = await this._mergeTable('clients',        data.clients    || []);
-                       await this._mergeTable('ideas',          data.ideas      || []);
-                       await this._mergeTable('fixed_expenses', data.expenses   || []);
+    console.log('[Import] Validation OK. Début de la fusion non-destructive...');
 
-    const projectMap = await this._mergeTable('projects', data.projects || [], {
+    const allWarnings = [];
+    const collect = (result) => { allWarnings.push(...result.warnings); return result.idMap; };
+
+    const productMap = collect(await this._mergeTable('products',       data.products   || []));
+    const clientMap  = collect(await this._mergeTable('clients',        data.clients    || []));
+                       collect(await this._mergeTable('ideas',          data.ideas      || []));
+                       collect(await this._mergeTable('fixed_expenses', data.expenses   || []));
+
+    const projectMap = collect(await this._mergeTable('projects', data.projects || [], {
       product_id: productMap,
-    });
+    }));
 
-    const angleMap = await this._mergeTable('marketing_angles', data.angles || [], {
+    const angleMap = collect(await this._mergeTable('marketing_angles', data.angles || [], {
       product_id: productMap,
-    });
+    }));
 
-    await this._mergeTable('marketing_data', data.marketingData || [], {
+    collect(await this._mergeTable('marketing_data', data.marketingData || [], {
       product_id: productMap,
-    });
+    }));
 
-    await this._mergeTable('saved_offers', data.offers || [], {
+    collect(await this._mergeTable('saved_offers', data.offers || [], {
       product_id: productMap,
-    });
+    }));
 
-    await this._mergeTable('marketing_scripts', data.scripts || [], {
+    collect(await this._mergeTable('marketing_scripts', data.scripts || [], {
       product_id: productMap,
       angle_id:   angleMap,
-    });
+    }));
 
-    await this._mergeTable('marketing_copies', data.copies || [], {
+    collect(await this._mergeTable('marketing_copies', data.copies || [], {
       product_id: productMap,
       angle_id:   angleMap,
-    });
+    }));
 
-    await this._mergeTable('sales', data.sales || [], {
+    collect(await this._mergeTable('sales', data.sales || [], {
       product_id: productMap,
       client_id:  clientMap,
-    });
+    }));
 
-    await this._mergeTable('livraisons', data.livraisons || [], {
+    collect(await this._mergeTable('livraisons', data.livraisons || [], {
       product_id: productMap,
       client_id:  clientMap,
-    });
+    }));
 
-    await this._mergeTable('tasks', data.tasks || [], {
+    collect(await this._mergeTable('tasks', data.tasks || [], {
       project_id: projectMap,
-    });
+    }));
 
     console.log('[Import] ✓ Fusion terminée. Aucune donnée existante n\'a été supprimée.');
-    return true;
+    return { success: true, warnings: allWarnings };
   },
 
   // ── Remplacement total (appelé UNIQUEMENT depuis confirmReset + import) ──
@@ -1205,24 +1264,27 @@ const DB = {
       if (error) throw new Error(`Erreur suppression "${tableName}" : ${error.message}`);
     }
 
+    const allWarnings = [];
+    const collect = (result) => { allWarnings.push(...result.warnings); return result.idMap; };
+
     // Réinsertion sans logique de fusion (table vide)
-    const productMap = await this._mergeTable('products',       data.products   || []);
-    const clientMap  = await this._mergeTable('clients',        data.clients    || []);
-                       await this._mergeTable('ideas',          data.ideas      || []);
-                       await this._mergeTable('fixed_expenses', data.expenses   || []);
+    const productMap = collect(await this._mergeTable('products',       data.products   || []));
+    const clientMap  = collect(await this._mergeTable('clients',        data.clients    || []));
+                       collect(await this._mergeTable('ideas',          data.ideas      || []));
+                       collect(await this._mergeTable('fixed_expenses', data.expenses   || []));
 
-    const projectMap = await this._mergeTable('projects', data.projects || [], { product_id: productMap });
-    const angleMap   = await this._mergeTable('marketing_angles', data.angles || [], { product_id: productMap });
+    const projectMap = collect(await this._mergeTable('projects', data.projects || [], { product_id: productMap }));
+    const angleMap   = collect(await this._mergeTable('marketing_angles', data.angles || [], { product_id: productMap }));
 
-    await this._mergeTable('marketing_data',    data.marketingData || [], { product_id: productMap });
-    await this._mergeTable('saved_offers',      data.offers        || [], { product_id: productMap });
-    await this._mergeTable('marketing_scripts', data.scripts       || [], { product_id: productMap, angle_id: angleMap });
-    await this._mergeTable('marketing_copies',  data.copies        || [], { product_id: productMap, angle_id: angleMap });
-    await this._mergeTable('sales',      data.sales      || [], { product_id: productMap, client_id: clientMap });
-    await this._mergeTable('livraisons', data.livraisons || [], { product_id: productMap, client_id: clientMap });
-    await this._mergeTable('tasks',      data.tasks      || [], { project_id: projectMap });
+    collect(await this._mergeTable('marketing_data',    data.marketingData || [], { product_id: productMap }));
+    collect(await this._mergeTable('saved_offers',      data.offers        || [], { product_id: productMap }));
+    collect(await this._mergeTable('marketing_scripts', data.scripts       || [], { product_id: productMap, angle_id: angleMap }));
+    collect(await this._mergeTable('marketing_copies',  data.copies        || [], { product_id: productMap, angle_id: angleMap }));
+    collect(await this._mergeTable('sales',      data.sales      || [], { product_id: productMap, client_id: clientMap }));
+    collect(await this._mergeTable('livraisons', data.livraisons || [], { product_id: productMap, client_id: clientMap }));
+    collect(await this._mergeTable('tasks',      data.tasks      || [], { project_id: projectMap }));
 
-    return true;
+    return { success: true, warnings: allWarnings };
   },
 };
 

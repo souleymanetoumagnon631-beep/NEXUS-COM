@@ -132,6 +132,7 @@ Pages.achats = {
       { k: 'store',     lb: 'Boutique',       t: 'text',   full: true },
       { k: 'qty',       lb: 'Quantité',       t: 'number' },
       { k: 'stock',     lb: 'Coût stock',     t: 'number' },
+      { k: 'fret_type', lb: 'Type de fret',   t: 'select', options: ['Aérien', 'Maritime'] },
       { k: 'fret',      lb: 'Fret',           t: 'number' },
       { k: 'customs',   lb: 'Douane',         t: 'number' },
       { k: 'packaging', lb: 'Emballage',      t: 'number' },
@@ -143,13 +144,26 @@ Pages.achats = {
 
     const bodyHtml = `
       <div class="form-grid">
-        ${fields.map(f => `
-          <div class="form-group${f.full ? ' form-full' : ''}">
-            <label class="form-label">${f.lb}</label>
-            <input type="${f.t}" class="form-input" id="em-${f.k}"
-              value="${esc(String(p[f.k] ?? ''))}"
-              ${f.t === 'number' ? 'min="0"' : ''}>
-          </div>`).join('')}
+        ${fields.map(f => {
+          if (f.t === 'select') {
+            return `
+              <div class="form-group${f.full ? ' form-full' : ''}">
+                <label class="form-label">${f.lb}</label>
+                <select class="form-input" id="em-${f.k}">
+                  ${f.options.map(opt =>
+                    `<option value="${esc(opt)}"${p[f.k] === opt ? ' selected' : ''}>${esc(opt)}</option>`
+                  ).join('')}
+                </select>
+              </div>`;
+          }
+          return `
+            <div class="form-group${f.full ? ' form-full' : ''}">
+              <label class="form-label">${f.lb}</label>
+              <input type="${f.t}" class="form-input" id="em-${f.k}"
+                value="${esc(String(p[f.k] ?? ''))}"
+                ${f.t === 'number' ? 'min="0"' : ''}>
+            </div>`;
+        }).join('')}
       </div>
       <div style="display:flex;gap:9px;margin-top:18px">
         <button class="btn btn-secondary" style="flex:1" onclick="Modal.close('editModal')">Annuler</button>
@@ -170,6 +184,7 @@ Pages.achats = {
       store:     $('em-store')?.value.trim() || '',
       qty:       parseFloat($('em-qty')?.value)       || 0,
       stock:     parseFloat($('em-stock')?.value)     || 0,
+      fret_type: $('em-fret_type')?.value    || 'Aérien',
       fret:      parseFloat($('em-fret')?.value)      || 0,
       customs:   parseFloat($('em-customs')?.value)   || 0,
       packaging: parseFloat($('em-packaging')?.value) || 0,

@@ -369,12 +369,31 @@ const Engine = {
     }
 
     // Seuil de rentabilité (unités à vendre par mois)
-    const totalQtySold = sales.reduce((s, v) => s + (v.qty || 0), 0);
+    const totalQtySold    = sales.reduce((s, v) => s + (v.qty || 0), 0);
     const avgPricePerUnit = totalQtySold > 0 ? totalCA / totalQtySold : 0;
-    const avgMarginRate = totalCA > 0 ? totalProfit / totalCA : 0;
-    const breakeven = avgPricePerUnit > 0 && avgMarginRate > 0
-      ? Math.ceil(totalFixed / (avgPricePerUnit * avgMarginRate))
-      : null;
+    const avgMarginRate   = totalCA > 0 ? totalProfit / totalCA : 0;
+
+    // Seuil minimal de marge en-dessous duquel le calcul devient peu fiable/explosif
+    const MIN_RELIABLE_MARGIN = 0.02; // 2%
+    const MAX_REASONABLE_UNITS = 100000;
+
+    let breakeven       = null;
+    let breakevenWarning = null;
+
+    if (avgPricePerUnit > 0 && avgMarginRate > 0) {
+      if (avgMarginRate < MIN_RELIABLE_MARGIN) {
+        breakevenWarning = 'Votre marge moyenne est trop faible pour calculer un seuil de rentabilité fiable. Augmentez vos prix ou réduisez vos coûts.';
+      } else {
+        const computed = Math.ceil(totalFixed / (avgPricePerUnit * avgMarginRate));
+        if (computed > MAX_REASONABLE_UNITS) {
+          breakevenWarning = 'Le volume nécessaire est anormalement élevé — votre marge actuelle ne couvre pas vos dépenses fixes à un rythme réaliste.';
+        } else {
+          breakeven = computed;
+        }
+      }
+    } else if (avgMarginRate <= 0 && totalCA > 0) {
+      breakevenWarning = 'Votre marge moyenne actuelle est nulle ou négative : aucun volume de vente ne suffira à couvrir vos dépenses fixes en l\'état.';
+    }
 
     return {
       totalFixed,
@@ -383,6 +402,7 @@ const Engine = {
       netProfit,
       avgMonthCA,
       breakeven,
+      breakevenWarning,
       avgPricePerUnit,
       avgMarginRate,
     };
