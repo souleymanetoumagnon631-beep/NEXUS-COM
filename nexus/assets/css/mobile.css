@@ -65,7 +65,7 @@
 /* ── SPLIT GRIDS — STACK ON MOBILE ── */
 @media (max-width: 768px) {
   .split-2col, .split-340, .split-360, .split-400,
-  .two-col, .split-2col, .grid-2col {
+  .two-col, .grid-2col {
     grid-template-columns: 1fr !important;
     gap: 14px !important;
     width: 100% !important;
@@ -140,7 +140,24 @@
 /* ── FINANCIALS ── */
 @media (max-width: 768px) {
   .fin-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+  }
+  .fin-card {
+    padding: 16px 12px !important;
+    min-width: 0 !important;
+  }
+  .fin-val {
+    font-size: 1.1rem !important;
+    word-break: break-word;
+  }
+}
+@media (max-width: 480px) {
+  .fin-grid {
     grid-template-columns: 1fr !important;
+  }
+  .fin-val {
+    font-size: 1rem !important;
   }
 }
 
@@ -348,12 +365,15 @@
   }
 }
 
-/* ── FORCE ALL FLEX WRAP ── */
+/* ── FORCE SPECIFIC FLEX WRAP ── */
 @media (max-width: 768px) {
-  [style*="display:flex"] {
+  .topbar,
+  .topbar-user,
+  .l-nav-actions,
+  .l-hero-actions,
+  .login-tabs,
+  .login-nav-actions,
+  #page-marketing > div[style*="display:flex"] {
     flex-wrap: wrap !important;
-  }
-  [style*="gap:12px"], [style*="gap:14px"], [style*="gap:16px"] {
-    gap: 8px !important;
   }
 }
