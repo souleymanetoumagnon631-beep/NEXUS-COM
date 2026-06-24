@@ -93,21 +93,38 @@ Les clés Supabase sont embarquées dans le frontend (anon key) comme requis par
 
 3. Configurer les variables d'environnement dans Vercel et Supabase.
 
-## Corrections Appliquées (v1.3)
+## Corrections Appliquées (v1.4)
 
-- [x] **Sécurité :** Filtre user_id dans toutes les méthodes getAll()
-- [x] **Sécurité :** HMAC obligatoire pour le webhook PayTech
-- [x] **Sécurité :** CORS restreint via variable d'environnement
-- [x] **Sécurité :** Placeholder de domaine remplacé par env var
-- [x] **Logique :** Calcul des dates de semaine corrigé (lundi -> dimanche)
-- [x] **Logique :** Calcul des mois basé sur la différence réelle
-- [x] **Logique :** Bornes de dates clarifiées dans getCAForPeriod()
-- [x] **Architecture :** Code mort supprimé
-- [x] **Architecture :** Dossier supabase en double supprimé
-- [x] **Architecture :** Script Supabase en double retiré de login.html
-- [x] **UX :** Message d'erreur si chargement des données échoue
-- [x] **UX :** Modale de confirmation custom disponible (Modal.confirmAsync)
-- [x] **UX :** Cache marketing invalidé sur les changements Realtime
+### Sécurité (5)
+- [x] **Filtre user_id** dans toutes les méthodes getAll() de db.js
+- [x] **HMAC obligatoire** pour le webhook PayTech (fallback legacy supprimé)
+- [x] **CORS restreint** via variable d'environnement NEXUS_ORIGIN
+- [x] **Placeholder "ton-domaine"** remplacé par Deno.env.get("NEXUS_ORIGIN")
+- [x] **verify_jwt = false** documenté dans supabase/config.toml (webhook PayTech)
+
+### Logique Métier (5)
+- [x] **getCAForPeriod()** — Bornes de dates corrigées (start ≤ end)
+- [x] **getDateBounds('week')** — Semaine commence le lundi (pas dimanche)
+- [x] **getRevenusStats()** — Calcul des mois basé sur année×12 + mois (pas 30 jours)
+- [x] **getFinancesStats()** — Même correction pour le calcul des mois moyens
+- [x] **getMonthlyChartData()** — Profit mensuel clarifié avec coût unitaire du mois
+
+### Architecture & Code (5)
+- [x] **Script Supabase en double** retiré de login.html
+- [x] **Code mort supprimé** : _generateRef() dans paytech.js, hide() vide dans ui.js
+- [x] **Dossier nexus/supabase/** supprimé (doublon avec supabase/ racine)
+- [x] **Optional chaining** ajouté dans achats.js et ventes.js (p.name?.[0])
+- [x] **Gestion d'erreur loadAll()** — Toast erreur utilisateur au lieu de planter
+
+### UX / Interface (5)
+- [x] **Modale confirmation custom** — Modal.confirmAsync() disponible (remplace window.confirm)
+- [x] **Cache marketing** — invalidateCache() appelé sur changements Realtime
+- [x] **Fallback CDN Chart.js** — double source (jsdelivr + unpkg)
+- [x] **Limite WhatsApp** — 10 onglets max par envoi pour éviter le flood
+- [x] **Tableaux responsive** — amélioration mobile.css (stats-grid, rev-kpis, pipeline, sidebar)
+
+### Base de Données (1)
+- [x] **seed.sql créé** — Schéma complet avec RLS, indexes, et fonction RPC get_my_subscription()
 
 ## Licence
 

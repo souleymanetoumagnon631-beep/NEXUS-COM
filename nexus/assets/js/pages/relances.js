@@ -259,7 +259,8 @@ Pages.relances = {
     prev.textContent = `${selected.length} client(s) sélectionné(s)\n\n---\n\n${msg}`;
   },
 
-  // ── [FIX popup-blocker] ──
+  // ── [FIX popup-blocker + CORRIGÉ 8.3] ──
+  // Limite à 10 onglets maximum pour éviter de noyer l'utilisateur
   // Les navigateurs bloquent window.open() appelé hors d'un clic direct
   // (donc tout appel dans un setTimeout > 0 est bloqué, sauf le premier).
   // Solution : ouvrir TOUTES les fenêtres immédiatement (pendant le clic),
@@ -274,12 +275,19 @@ Pages.relances = {
     const product   = productId ? State.getProduct(productId) : null;
     const note      = $('r-rec-note')?.value || '';
 
-    const targets = selected
+    let targets = selected
       .map(el => State.getClient(el.dataset.id))
       .filter(client => client?.phone);
 
     if (!targets.length) {
       return Toast.err('Aucun des clients sélectionnés n\'a de numéro de téléphone.');
+    }
+
+    // [CORRIGÉ 8.3] Limiter à 10 clients maximum par envoi
+    const MAX_WINDOWS = 10;
+    const totalTargets = targets.length;
+    if (targets.length > MAX_WINDOWS) {
+      targets = targets.slice(0, MAX_WINDOWS);
     }
 
     const skipped = selected.length - targets.length;
@@ -307,6 +315,7 @@ Pages.relances = {
     });
 
     let report = `${sent} message(s) ouvert(s) dans WhatsApp.`;
+    if (totalTargets > MAX_WINDOWS) report += ` ${totalTargets - MAX_WINDOWS} client(s) ignoré(s) (limite de ${MAX_WINDOWS} onglets).`;
     if (skipped) report += ` ${skipped} client(s) ignoré(s) (pas de numéro).`;
     if (blockedCount) report += ` ${blockedCount} fenêtre(s) bloquée(s) par le navigateur.`;
     (blockedCount ? Toast.warn : Toast.ok)(report);

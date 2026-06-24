@@ -17,6 +17,9 @@
     // ── 2. Charger toutes les données Supabase ──
     await State.init();
 
+    // ── 2b. Activer la détection de changements d'état ──
+    StateProxy.enable();
+
     // ── 3. Init thème ──
     Theme.init();
 

@@ -514,6 +514,115 @@ function initKeyboardShortcuts() {
   });
 }
 
+// ══════════════════════════════════════════
+//   PAGINATION — [CORRIGÉ 4.2]
+//   Helper pour paginer les listes
+// ══════════════════════════════════════════
+const Pagination = {
+  defaultPageSize: 20,
+
+  create(options) {
+    const {
+      containerId,
+      items = [],
+      pageSize = this.defaultPageSize,
+      renderItem,
+      renderEmpty = 'Aucun résultat.',
+    } = options;
+
+    let currentPage = 1;
+    const totalPages = Math.ceil(items.length / pageSize) || 1;
+
+    function getPageItems() {
+      const start = (currentPage - 1) * pageSize;
+      return items.slice(start, start + pageSize);
+    }
+
+    function render() {
+      const container = $(containerId);
+      if (!container) return;
+
+      const pageItems = getPageItems();
+
+      if (!pageItems.length) {
+        container.innerHTML = `<div class="empty-state">${renderEmpty}</div>`;
+        return;
+      }
+
+      container.innerHTML = pageItems.map((item, i) => renderItem(item, i)).join('');
+
+      // Ajouter la navigation pagination
+      if (totalPages > 1) {
+        container.innerHTML += this.buildNav(currentPage, totalPages, containerId);
+      }
+    }
+
+    function goTo(page) {
+      if (page < 1 || page > totalPages) return;
+      currentPage = page;
+      render();
+    }
+
+    return { render, goTo, get currentPage() { return currentPage; }, get totalPages() { return totalPages; } };
+  },
+
+  buildNav(current, total, containerId) {
+    const maxVisible = 5;
+    let pages = [];
+
+    if (total <= maxVisible) {
+      pages = Array.from({ length: total }, (_, i) => i + 1);
+    } else {
+      const half = Math.floor(maxVisible / 2);
+      let start = Math.max(1, current - half);
+      let end = Math.min(total, start + maxVisible - 1);
+      start = Math.max(1, end - maxVisible + 1);
+      pages = Array.from({ length: end - start + 1 }, (_, i) => start + i);
+    }
+
+    const prevDisabled = current === 1 ? 'disabled' : '';
+    const nextDisabled = current === total ? 'disabled' : '';
+
+    return `
+      <div class="pagination" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:16px;flex-wrap:wrap">
+        <button class="btn btn-sm btn-secondary" ${prevDisabled} onclick="Pagination.goTo('${containerId}', ${current - 1})">
+          ← Précédent
+        </button>
+        ${pages.map(p => `
+          <button class="btn btn-sm ${p === current ? 'btn-primary' : 'btn-secondary'}"
+                  onclick="Pagination.goTo('${containerId}', ${p})"
+                  style="min-width:36px;padding:6px 10px">
+            ${p}
+          </button>
+        `).join('')}
+        <button class="btn btn-sm btn-secondary" ${nextDisabled} onclick="Pagination.goTo('${containerId}', ${current + 1})">
+          Suivant →
+        </button>
+        <span style="font-size:.75rem;color:var(--text3);margin-left:8px">
+          ${current}/${total} pages
+        </span>
+      </div>`;
+  },
+
+  goTo(containerId, page) {
+    const instance = window._paginationInstances?.[containerId];
+    if (instance) instance.goTo(page);
+  },
+};
+
+window.Pagination = Pagination;
+window._paginationInstances = {};
+
+// Override create pour stocker les instances
+const originalCreate = Pagination.create.bind(Pagination);
+Pagination.create = function(options) {
+  const instance = originalCreate(options);
+  if (options.containerId) {
+    window._paginationInstances[options.containerId] = instance;
+  }
+  return instance;
+};
+
 function debounce(fn, delay = 300) {
   let t;
   return (...args) => {

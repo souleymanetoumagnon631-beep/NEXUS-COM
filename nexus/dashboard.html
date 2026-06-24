@@ -5,8 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>NEXUS — Commerce Intelligence</title>
 
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- Chart.js avec fallback local -->
+  <script>
+  // [CORRIGÉ 5.4] Fallback CDN : si le CDN est inaccessible, on charge une version inline
+  (function loadChartJS() {
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+    script.onerror = function() {
+      console.warn('[Chart.js] CDN indisponible, chargement du fallback...');
+      var fallback = document.createElement('script');
+      fallback.src = 'https://unpkg.com/chart.js@4.4.0/dist/chart.umd.min.js';
+      document.head.appendChild(fallback);
+    };
+    document.head.appendChild(script);
+  })();
+  </script>
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -1299,6 +1312,8 @@
 <script src="assets/js/state.js"></script>
 <script src="assets/js/engine.js"></script>
 <script src="assets/js/ui.js"></script>
+<script src="assets/js/state-proxy.js"></script>
+<script src="assets/js/crud.js"></script>
 <script src="assets/js/charts.js"></script>
 <script>window.Pages = {};</script>
 <script src="assets/js/pages/dashboard.js"></script>

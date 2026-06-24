@@ -137,6 +137,75 @@
   }
 }
 
+/* ── STATS GRID MOBILE ── */
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+  .stat-card {
+    padding: 14px 12px !important;
+    min-width: 0 !important;
+  }
+  .stat-val {
+    font-size: 1.05rem !important;
+  }
+}
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── REVENUS KPIS ── */
+@media (max-width: 768px) {
+  #rev-kpis {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+}
+@media (max-width: 480px) {
+  #rev-kpis {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── PIPELINE CARDS ── */
+@media (max-width: 768px) {
+  .pipeline-count {
+    font-size: .8rem !important;
+  }
+  .pipeline-header {
+    font-size: .82rem !important;
+    padding: 10px !important;
+  }
+  .delivery-card {
+    padding: 10px !important;
+  }
+}
+
+/* ── PROJECT STATS ── */
+@media (max-width: 768px) {
+  .proj-stats {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+/* ── SIDEBAR MOBILE ── */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 280px !important;
+    transform: translateX(-100%);
+    transition: transform .3s ease !important;
+  }
+  .sidebar.open {
+    transform: translateX(0) !important;
+  }
+  .sidebar-overlay.open {
+    display: block !important;
+  }
+}
+
 /* ── FINANCIALS ── */
 @media (max-width: 768px) {
   .fin-grid {
