@@ -28,7 +28,7 @@ Pages.achats = {
         <tr class="anim" style="animation-delay:${i * .03}s">
           <td>
             <div class="td-prod">
-              <div class="td-av" style="background:${col}22;color:${col}">${p.name[0].toUpperCase()}</div>
+              <div class="td-av" style="background:${col}22;color:${col}">${(p.name?.[0] || '?').toUpperCase()}</div>
               <div>
                 <div class="td-name">${esc(p.name)}</div>
                 <div class="td-sub">${fmtDate(p.created_at?.split('T')[0])}</div>

@@ -41,6 +41,7 @@ Deno.serve(async (req) => {
 
     // Validation stricte de l'origin pour éviter SSRF
     let siteOrigin: string;
+    const DEFAULT_ORIGIN = Deno.env.get("NEXUS_ORIGIN") || "https://ton-domaine.vercel.app";
     if (origin) {
       try {
         const url = new URL(origin);
@@ -59,10 +60,10 @@ Deno.serve(async (req) => {
         }
         siteOrigin = url.origin;
       } catch {
-        siteOrigin = "https://ton-domaine.vercel.app";
+        siteOrigin = DEFAULT_ORIGIN;
       }
     } else {
-      siteOrigin = "https://ton-domaine.vercel.app";
+      siteOrigin = DEFAULT_ORIGIN;
     }
 
     // Chemins fournis par le client, avec valeurs par défaut sûres si absents

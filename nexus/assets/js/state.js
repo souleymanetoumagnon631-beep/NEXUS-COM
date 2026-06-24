@@ -74,6 +74,10 @@ const State = {
       return true;
     } catch (err) {
       console.error('[State] Erreur init:', err);
+      // Afficher une erreur utilisateur au lieu de planter silencieusement
+      if (window.Toast) {
+        Toast.err('Impossible de charger les données. Vérifiez votre connexion et réessayez.');
+      }
       throw err;
     }
   },

@@ -100,11 +100,6 @@ async requestPayment({ plan, customField = {}, successPath, cancelPath }) {
   // ══════════════════════════════════════
   //   UTILS
   // ══════════════════════════════════════
-  _generateRef(plan) {
-    const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
-    return `NEXUS-${plan.toUpperCase()}-${Date.now()}-${rand}`;
-  },
-
   _sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   },

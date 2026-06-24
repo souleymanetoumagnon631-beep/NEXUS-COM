@@ -43,9 +43,11 @@ const DB = {
   products: {
 
     async getAll() {
+      const uid = await DB._getUserId();
       const { data, error } = await NEXUS.supabase
         .from('products')
         .select('*')
+        .eq('user_id', uid)
         .order('created_at', { ascending: false });
       if (error) DB.handleError(error, 'products.getAll');
       return data || [];
@@ -106,6 +108,7 @@ const DB = {
   sales: {
 
     async getAll() {
+      const uid = await DB._getUserId();
       const { data, error } = await NEXUS.supabase
         .from('sales')
         .select(`
@@ -113,6 +116,7 @@ const DB = {
           product:product_id ( id, name, store ),
           client:client_id   ( id, name, phone )
         `)
+        .eq('user_id', uid)
         .order('sale_date', { ascending: false });
       if (error) DB.handleError(error, 'sales.getAll');
       return data || [];
@@ -186,9 +190,11 @@ const DB = {
   clients: {
 
     async getAll() {
+      const uid = await DB._getUserId();
       const { data, error } = await NEXUS.supabase
         .from('clients')
         .select('*')
+        .eq('user_id', uid)
         .order('name', { ascending: true });
       if (error) DB.handleError(error, 'clients.getAll');
       return data || [];
@@ -249,6 +255,7 @@ const DB = {
   livraisons: {
 
     async getAll() {
+      const uid = await DB._getUserId();
       const { data, error } = await NEXUS.supabase
         .from('livraisons')
         .select(`
@@ -256,6 +263,7 @@ const DB = {
           client:client_id   ( id, name, phone ),
           product:product_id ( id, name )
         `)
+        .eq('user_id', uid)
         .order('created_at', { ascending: false });
       if (error) DB.handleError(error, 'livraisons.getAll');
       return data || [];
@@ -321,12 +329,14 @@ const DB = {
   projects: {
 
     async getAll() {
+      const uid = await DB._getUserId();
       const { data, error } = await NEXUS.supabase
         .from('projects')
         .select(`
           *,
           product:product_id ( id, name )
         `)
+        .eq('user_id', uid)
         .order('created_at', { ascending: false });
       if (error) DB.handleError(error, 'projects.getAll');
       return data || [];
@@ -384,12 +394,14 @@ const DB = {
   tasks: {
 
     async getAll() {
+      const uid = await DB._getUserId();
       const { data, error } = await NEXUS.supabase
         .from('tasks')
         .select(`
           *,
           project:project_id ( id, name )
         `)
+        .eq('user_id', uid)
         .order('created_at', { ascending: false });
       if (error) DB.handleError(error, 'tasks.getAll');
       return data || [];
@@ -452,9 +464,11 @@ const DB = {
   ideas: {
 
     async getAll() {
+      const uid = await DB._getUserId();
       const { data, error } = await NEXUS.supabase
         .from('ideas')
         .select('*')
+        .eq('user_id', uid)
         .order('created_at', { ascending: false });
       if (error) DB.handleError(error, 'ideas.getAll');
       return data || [];
@@ -512,9 +526,11 @@ const DB = {
   expenses: {
 
     async getAll() {
+      const uid = await DB._getUserId();
       const { data, error } = await NEXUS.supabase
         .from('fixed_expenses')
         .select('*')
+        .eq('user_id', uid)
         .order('created_at', { ascending: false });
       if (error) DB.handleError(error, 'expenses.getAll');
       return data || [];
@@ -564,9 +580,11 @@ const DB = {
   marketingData: {
 
     async getAll() {
+      const uid = await DB._getUserId();
       const { data, error } = await NEXUS.supabase
         .from('marketing_data')
-        .select('*');
+        .select('*')
+        .eq('user_id', uid);
       if (error) DB.handleError(error, 'marketingData.getAll');
       return data || [];
     },
@@ -728,12 +746,14 @@ const DB = {
   offers: {
 
     async getAll() {
+      const uid = await DB._getUserId();
       const { data, error } = await NEXUS.supabase
         .from('saved_offers')
         .select(`
           *,
           product:product_id ( id, name )
         `)
+        .eq('user_id', uid)
         .order('created_at', { ascending: false });
       if (error) DB.handleError(error, 'offers.getAll');
       return data || [];

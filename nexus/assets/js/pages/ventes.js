@@ -45,7 +45,7 @@ Pages.ventes = {
         <tr class="anim" style="animation-delay:${i * .025}s">
           <td>
             <div class="td-prod">
-              <div class="td-av" style="background:${col}22;color:${col}">${(p?.name || '?')[0].toUpperCase()}</div>
+              <div class="td-av" style="background:${col}22;color:${col}">${((p?.name || '?')[0] || '?').toUpperCase()}</div>
               <div>
                 <div class="td-name">${esc(p?.name || 'Supprimé')}</div>
                 ${v.note ? `<div class="td-sub">${esc(v.note)}</div>` : ''}

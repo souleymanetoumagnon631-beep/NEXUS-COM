@@ -8,6 +8,17 @@ Pages.marketing = {
   _creatifTab:  'scripts',
   _currentPid:  '',
   _mktDataCache:{}, // { productId: { data... } } chargé depuis Supabase
+  // [CORRIGÉ 8.4] Cette méthode doit être appelée quand les données changent via Realtime
+  invalidateCache(productId) {
+    if (productId) {
+      delete this._mktDataCache[productId];
+      if (this._currentPid === productId) {
+        this._renderTab();
+      }
+    } else {
+      this._mktDataCache = {};
+    }
+  },
 
   _criteria: [
     { key: 'offre-dream',   label: 'Résultat rêvé défini',   weight: 20 },

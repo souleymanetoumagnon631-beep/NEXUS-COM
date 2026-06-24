@@ -220,9 +220,44 @@ const Modal = {
     this.open('editModal');
   },
 
-  // Confirmer une action destructrice
-  confirm(message) {
-    return window.confirm(message);
+  // [CORRIGÉ 4.3] Version asynchrone pour les nouvelles utilisations
+  // Retourne une Promise<boolean> avec une modale stylée
+  confirmAsync(message, title = 'Confirmation') {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.style.cssText = 'display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);z-index:10000';
+
+      const modal = document.createElement('div');
+      modal.className = 'modal';
+      modal.style.cssText = 'max-width:420px;padding:0';
+
+      modal.innerHTML = `
+        <div class="modal-hdr">
+          <div class="modal-title">${esc(title)}</div>
+        </div>
+        <div class="modal-bdy" style="padding:20px 24px">
+          <div style="font-size:.9rem;color:var(--text2);line-height:1.6;margin-bottom:20px">${esc(message)}</div>
+          <div style="display:flex;gap:9px">
+            <button class="btn btn-secondary" style="flex:1" id="confirm-cancel">Annuler</button>
+            <button class="btn btn-danger" style="flex:1" id="confirm-ok">Confirmer</button>
+          </div>
+        </div>`;
+
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+
+      const close = (result) => {
+        document.body.removeChild(overlay);
+        document.body.style.overflow = '';
+        resolve(result);
+      };
+
+      overlay.querySelector('#confirm-cancel').onclick = () => close(false);
+      overlay.querySelector('#confirm-ok').onclick = () => close(true);
+      overlay.onclick = (e) => { if (e.target === overlay) close(false); };
+      document.body.style.overflow = 'hidden';
+    });
   },
 };
 
@@ -320,10 +355,6 @@ const Loader = {
         <div class="nexus-spinner"></div>
         <div style="font-size:.84rem;color:var(--text3)">${esc(message)}</div>
       </div>`;
-  },
-
-  hide(containerId) {
-    // Le contenu sera remplacé par le render suivant
   },
 
   // Loader sur un bouton

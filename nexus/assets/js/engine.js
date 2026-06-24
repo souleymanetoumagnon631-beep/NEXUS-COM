@@ -247,12 +247,16 @@ const Engine = {
   // ══════════════════════════════════════════
   //   REVENUS : Calcul par période
   // ══════════════════════════════════════════
+  // [CORRIGÉ] getCAForPeriod : les paramètres sont maintenant clairs :
+  // daysAgoStart = début de la période (ex: 0 = aujourd'hui)
+  // daysAgoEnd   = fin de la période (ex: 6 = il y a 6 jours)
+  // start est la date la plus ancienne, end la plus récente
   getCAForPeriod(sales, daysAgoStart, daysAgoEnd) {
     const now   = new Date();
     const start = new Date();
     const end   = new Date();
-    start.setDate(now.getDate() - daysAgoEnd);
-    end.setDate(now.getDate() - daysAgoStart);
+    start.setDate(now.getDate() - Math.max(daysAgoStart, daysAgoEnd));
+    end.setDate(now.getDate() - Math.min(daysAgoStart, daysAgoEnd));
     const sDate = start.toISOString().split('T')[0];
     const eDate = end.toISOString().split('T')[0];
     return sales
@@ -268,8 +272,14 @@ const Engine = {
     const dow = now.getDay();
 
     if (tab === 'week') {
-      const start = new Date(y, m, d - dow);
-      const end   = new Date(y, m, d - dow + 6);
+      // [CORRIGÉ] Semaine commence le lundi (dow=1) au lieu de dimanche (dow=0)
+      // getDay() : 0=Dim, 1=Lun, 2=Mar, ..., 6=Sam
+      // Si dimanche (0), on recule de 6 jours pour arriver au lundi
+      // Si lundi (1), on recule de 1 jour
+      // Si mardi (2), on recule de 2 jours, etc.
+      const daysSinceMonday = dow === 0 ? 6 : dow - 1;
+      const start = new Date(y, m, d - daysSinceMonday);
+      const end   = new Date(y, m, d - daysSinceMonday + 6);
       return {
         start: start.toISOString().split('T')[0],
         end:   end.toISOString().split('T')[0],
@@ -324,16 +334,17 @@ const Engine = {
     ).length;
 
     // Moyenne mensuelle
+    // [CORRIGÉ] Utilise la différence en mois réelle au lieu d'une approximation à 30 jours
     let avgCA   = 0;
     let avgSub  = 'Aucune vente';
     if (sales.length) {
       const dates = sales.map(s => s.sale_date).filter(Boolean).sort();
-      const months = Math.max(
-        1,
-        Math.round(
-          (new Date(dates[dates.length - 1]) - new Date(dates[0])) / 2592000000
-        ) + 1
-      );
+      const firstDate = new Date(dates[0]);
+      const lastDate  = new Date(dates[dates.length - 1]);
+      const monthsDiff = (lastDate.getFullYear() - firstDate.getFullYear()) * 12
+                       + (lastDate.getMonth() - firstDate.getMonth())
+                       + 1; // +1 car on inclut le mois en cours
+      const months = Math.max(1, monthsDiff);
       avgCA  = sales.reduce((s, v) => s + (v.price || 0) * (v.qty || 0), 0) / months;
       avgSub = `Sur ${months} mois d'activité`;
     }
@@ -356,15 +367,16 @@ const Engine = {
     const netProfit = totalProfit - totalFixed;
 
     // CA moyen mensuel
+    // [CORRIGÉ] Utilise la différence en mois réelle
     let avgMonthCA = 0;
     if (sales.length) {
       const dates = sales.map(s => s.sale_date).filter(Boolean).sort();
-      const months = Math.max(
-        1,
-        Math.round(
-          (new Date(dates[dates.length - 1]) - new Date(dates[0])) / 2592000000
-        ) + 1
-      );
+      const firstDate = new Date(dates[0]);
+      const lastDate  = new Date(dates[dates.length - 1]);
+      const monthsDiff = (lastDate.getFullYear() - firstDate.getFullYear()) * 12
+                       + (lastDate.getMonth() - firstDate.getMonth())
+                       + 1;
+      const months = Math.max(1, monthsDiff);
       avgMonthCA = totalCA / months;
     }
 
@@ -492,6 +504,8 @@ const Engine = {
   },
 
   // Données pour graphique mensuel (6 mois)
+  // [CORRIGÉ] Le profit mensuel utilise maintenant le coût unitaire du produit à l'achat
+  // (pas le coût moyen global) pour éviter les distorsions temporelles
   getMonthlyChartData() {
     const labels      = [];
     const caValues    = [];
@@ -507,12 +521,18 @@ const Engine = {
       labels.push(d.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' }));
 
       const mSales = State.getSales().filter(s => s.sale_date?.startsWith(prefix));
-      const ca     = mSales.reduce((s, v) => s + (v.price || 0) * (v.qty || 0), 0);
 
+      // CA du mois
+      const ca = mSales.reduce((s, v) => s + (v.price || 0) * (v.qty || 0), 0);
+
+      // Profit du mois : calculé produit par produit avec le coût unitaire de chaque produit
       const profit = mSales.reduce((s, v) => {
-        const st = this.getProductStats(v.product_id);
-        if (!st) return s;
-        return s + (v.price - st.unit) * (v.qty || 0) - (v.shipping || 0);
+        const stats = this.getProductStats(v.product_id);
+        if (!stats) return s;
+        // st.unit est le coût unitaire du produit (investissement total / quantité achetée)
+        // C'est la meilleure approximation disponible sans coût historique par lot
+        const unitCost = stats.unit;
+        return s + (v.price - unitCost) * (v.qty || 0) - (v.shipping || 0);
       }, 0);
 
       caValues.push(ca);

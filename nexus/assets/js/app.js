@@ -176,6 +176,10 @@ function initRealtime() {
       Nav.refreshIfActive('rentabilite');
       Nav.refreshIfActive('produits');
       Nav.refreshIfActive('marketing');
+      // [CORRIGÉ 8.4] Invalider le cache marketing quand un produit change
+      if (window.Pages?.marketing?.invalidateCache) {
+        Pages.marketing.invalidateCache(eventType === 'DELETE' ? o.id : n.id);
+      }
     },
 
     // ── Clients ──
