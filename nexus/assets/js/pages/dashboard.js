@@ -1,5 +1,6 @@
 // ══════════════════════════════════════════
-//   PAGE : DASHBOARD
+//   PAGE : DASHBOARD — v2 Clarté & Action
+//   Sections claires : Trésorerie, Santé, Performance, Actions
 // ══════════════════════════════════════════
 Pages.dashboard = {
 
@@ -23,60 +24,135 @@ Pages.dashboard = {
     const d  = Engine.getDashboardStats(pid);
     const pp = d.isProfitable;
 
-    // ── KPIs ──
+    // ── SECTION 1 : CONSEIL DU JOUR ──
+    const advices = Engine.getDailyAdvice(pid);
+    let adviceHTML = '';
+    if (advices.length) {
+      adviceHTML = `
+        <div class="card" style="margin-bottom:20px;border-color:rgba(124,111,255,0.2);background:linear-gradient(135deg,rgba(124,111,255,0.04),var(--surface2))">
+          <div class="card-header">
+            <div class="card-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              Conseils du jour
+            </div>
+            <span style="font-size:.72rem;color:var(--text3)">Basé sur vos données réelles</span>
+          </div>
+          <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+            ${advices.map(a => `
+              <div style="display:flex;gap:14px;align-items:flex-start;padding:12px 14px;background:var(--surface3);border-radius:10px;border:1px solid var(--border)">
+                <span style="font-size:1.4rem;flex-shrink:0">${a.icon}</span>
+                <div>
+                  <div style="font-size:.84rem;font-weight:700;margin-bottom:4px">${a.title}</div>
+                  <div style="font-size:.78rem;color:var(--text2);line-height:1.6">${a.text}</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>`;
+    }
+
+    // ── SECTION 2 : SCORE DE SANTÉ ──
+    const health = Engine.getBusinessHealthScore(pid);
+    const scoreHTML = `
+      <div class="card" style="margin-bottom:20px;border-color:${health.color}44">
+        <div class="card-header">
+          <div class="card-title">${health.emoji} Santé de votre business</div>
+          <span style="font-size:.72rem;color:var(--text3)">Score sur ${health.maxScore}</span>
+        </div>
+        <div style="padding:20px">
+          <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+            <!-- Jauge circulaire simplifiée -->
+            <div style="position:relative;width:100px;height:100px;flex-shrink:0">
+              <svg width="100" height="100" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="52" fill="none" stroke="var(--border)" stroke-width="12"/>
+                <circle cx="60" cy="60" r="52" fill="none" stroke="${health.color}" stroke-width="12"
+                  stroke-dasharray="${(health.score / health.maxScore) * 327}" stroke-dashoffset="0"
+                  stroke-linecap="round" transform="rotate(-90 60 60)" style="transition:stroke-dasharray 1s ease"/>
+              </svg>
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+                <span style="font-size:1.5rem;font-weight:900;color:${health.color}">${health.score}</span>
+                <span style="font-size:.6rem;color:var(--text3);text-transform:uppercase">/ ${health.maxScore}</span>
+              </div>
+            </div>
+            <div style="flex:1;min-width:200px">
+              <div style="font-size:1.1rem;font-weight:800;color:${health.color};margin-bottom:12px">${health.emoji} ${health.level}</div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                ${health.details.map(d => `
+                  <div style="display:flex;align-items:center;gap:8px;font-size:.78rem">
+                    <span style="width:8px;height:8px;border-radius:50%;background:${d.color === 'green' ? 'var(--green)' : d.color === 'orange' ? 'var(--orange)' : 'var(--red)'};flex-shrink:0"></span>
+                    <span style="color:var(--text2)">${d.label}</span>
+                    <span style="margin-left:auto;font-weight:600;color:${health.color}">${d.pts}/${20}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+    // ── KPIS : TRÉSORERIE & PERFORMANCE ──
+    const totalPubCosts = Engine.computeSaleCosts({ shipping: 0, fb_cost: 0, tiktok_cost: 0, ads_cost: 0, misc_cost: 0 });
+    // Recalcul plus précis des coûts totaux
+    const sales = pid ? State.getSalesByProduct(pid) : State.getSales();
+    const totalPub = sales.reduce((s, v) => s + (v.fb_cost || 0) + (v.tiktok_cost || 0) + (v.ads_cost || 0) + (v.misc_cost || 0), 0);
+    const totalShip = sales.reduce((s, v) => s + (v.shipping || 0), 0);
+    const vraiProfit = d.totalCA - d.totalInvest - totalPub - totalShip - d.totalExpenses;
+    const cashDisponible = d.totalCA - d.totalInvest;
+
     $('d-stats').innerHTML = `
-      <div class="stat-card c-purple anim">
+      <!-- Ligne 1 : Trésorerie & Liquidités -->
+      <div style="grid-column:1/-1;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:4px">💰 Trésorerie & Rentabilité Réelle</div>
+      <div class="stat-card ${vraiProfit >= 0 ? 'c-green' : 'c-red'} anim">
+        <div class="stat-icon-wrap" style="background:rgba(${vraiProfit >= 0 ? '52,211,153' : '248,113,113'},0.12)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${vraiProfit >= 0 ? '#34d399' : '#f87171'}" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        </div>
+        <div class="stat-label">💵 Profit Net Réel</div>
+        <div class="stat-val ${vraiProfit >= 0 ? 'pos' : 'neg'}">${fF(vraiProfit)}</div>
+        <div class="stat-sub">CA ${fF(d.totalCA)} − Invest ${fF(d.totalInvest)} − Pub ${fF(totalPub)} − Dépenses fixes ${fF(d.totalExpenses)}</div>
+      </div>
+      <div class="stat-card ${cashDisponible >= 0 ? 'c-purple' : 'c-red'} anim" style="animation-delay:.05s">
+        <div class="stat-icon-wrap" style="background:rgba(124,111,255,0.12)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c6fff" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <div class="stat-label">💰 Trésorerie (CA − Invest)</div>
+        <div class="stat-val ${cashDisponible >= 0 ? 'pos' : 'neg'}">${fF(cashDisponible)}</div>
+        <div class="stat-sub">${cashDisponible >= 0 ? 'Vous avez récupéré votre mise + ' + fF(cashDisponible) : 'Il manque ' + fF(Math.abs(cashDisponible)) + ' pour atteindre le point mort'}</div>
+      </div>
+      <!-- Ligne 2 : KPIs classiques -->
+      <div style="grid-column:1/-1;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-top:8px;margin-bottom:4px">📊 Performance Commerciale</div>
+      <div class="stat-card c-blue anim" style="animation-delay:.1s">
+        <div class="stat-icon-wrap" style="background:rgba(96,165,250,0.12)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="stat-label">Chiffre d'Affaires Total</div>
+        <div class="stat-val" style="color:var(--blue)">${fF(d.totalCA)}</div>
+        <div class="stat-sub">${d.nSales} vente(s) · Moy. ${d.nSales > 0 ? fF(Math.round(d.totalCA / d.nSales)) : '0'} / vente</div>
+      </div>
+      <div class="stat-card ${pp ? 'c-green' : 'c-red'} anim" style="animation-delay:.15s">
+        <div class="stat-icon-wrap" style="background:rgba(${pp ? '52,211,153' : '248,113,113'},0.12)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${pp ? '#34d399' : '#f87171'}" stroke-width="2">
+            <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+          </svg>
+        </div>
+        <div class="stat-label">Marge brute (produits)</div>
+        <div class="stat-val ${pp ? 'pos' : 'neg'}">${fF(d.totalProfit)}</div>
+        <div class="stat-sub">Marge: ${fP(d.avgMargin)} · ROI: ${fP(d.globalROI)}</div>
+      </div>
+      <div class="stat-card c-yellow anim" style="animation-delay:.2s">
+        <div class="stat-icon-wrap" style="background:rgba(251,191,36,0.12)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="stat-label">CA — 7 derniers jours</div>
+        <div class="stat-val" style="color:var(--yellow)">${fF(d.ca7j)}</div>
+        <div class="stat-sub">Tendance : <span style="color:${d.trend7j >= 0 ? 'var(--green)' : 'var(--red)'}">${fP(d.trend7j)}</span> vs semaine précédente</div>
+      </div>
+      <div class="stat-card c-purple anim" style="animation-delay:.25s">
         <div class="stat-icon-wrap" style="background:rgba(124,111,255,0.12)">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c6fff" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
         </div>
         <div class="stat-label">Investissement Total</div>
-        <div class="stat-val">${fF(d.totalInvest)}</div>
-        <div class="stat-sub">${d.nProducts} produit(s)</div>
-      </div>
-      <div class="stat-card c-blue anim" style="animation-delay:.05s">
-        <div class="stat-icon-wrap" style="background:rgba(96,165,250,0.12)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
-        </div>
-        <div class="stat-label">Chiffre d'Affaires</div>
-        <div class="stat-val">${fF(d.totalCA)}</div>
-        <div class="stat-sub">${d.nSales} vente(s)</div>
-      </div>
-      <div class="stat-card ${pp ? 'c-green' : 'c-red'} anim" style="animation-delay:.1s">
-        <div class="stat-icon-wrap" style="background:rgba(${pp ? '52,211,153' : '248,113,113'},0.12)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${pp ? '#34d399' : '#f87171'}" stroke-width="2">
-            <polyline points="${pp ? '22 7 13.5 15.5 8.5 10.5 2 17' : '22 17 13.5 8.5 8.5 13.5 2 7'}"/>
-            ${pp ? '<polyline points="16 7 22 7 22 13"/>' : '<polyline points="16 17 22 17 22 11"/>'}
-          </svg>
-        </div>
-        <div class="stat-label">${pp ? 'Profit Net' : 'Perte Nette'}</div>
-        <div class="stat-val ${pp ? 'pos' : 'neg'}">${fF(d.netProfit)}</div>
-        <div class="stat-sub">Marge: ${fP(d.avgMargin)} · ROI: ${fP(d.globalROI)}</div>
-      </div>
-      <div class="stat-card c-yellow anim" style="animation-delay:.15s">
-        <div class="stat-icon-wrap" style="background:rgba(251,191,36,0.12)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        </div>
-        <div class="stat-label">CA — 7 jours</div>
-        <div class="stat-val" style="color:var(--yellow)">${fF(d.ca7j)}</div>
-        <div class="stat-sub">
-          Tendance : <span style="color:${d.trend7j >= 0 ? 'var(--green)' : 'var(--red)'}">${fP(d.trend7j)}</span>
-        </div>
-      </div>
-      <div class="stat-card c-purple anim" style="animation-delay:.2s">
-        <div class="stat-icon-wrap" style="background:rgba(124,111,255,0.12)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c6fff" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-        </div>
-        <div class="stat-label">Projets Actifs</div>
-        <div class="stat-val" style="color:var(--accent2)">${d.nActiveProjects}</div>
-        <div class="stat-sub">${State.getProjects().length} total</div>
-      </div>
-      <div class="stat-card c-orange anim" style="animation-delay:.25s">
-        <div class="stat-icon-wrap" style="background:rgba(251,146,60,0.12)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fb923c" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-        </div>
-        <div class="stat-label">Livraisons Actives</div>
-        <div class="stat-val" style="color:var(--orange)">${d.nPending}</div>
-        <div class="stat-sub">En attente / confirmées</div>
+        <div class="stat-val" style="color:var(--accent2)">${fF(d.totalInvest)}</div>
+        <div class="stat-sub">${d.nProducts} produit(s) · Total dépenses fixes: ${fF(d.totalExpenses)}</div>
       </div>
     `;
 
@@ -84,6 +160,14 @@ Pages.dashboard = {
     const specificEl = $('dash-specific-stats');
     if (specificEl) {
       specificEl.innerHTML = pid ? this._renderProductDetail(pid) : '';
+    }
+
+    // ── Insérer score + conseils avant les charts ──
+    const chartsRow = $('dash-charts-row');
+    if (chartsRow) {
+      // Insérer avant le premier élément du split-2col
+      chartsRow.insertAdjacentHTML('beforebegin', scoreHTML);
+      chartsRow.insertAdjacentHTML('beforebegin', adviceHTML);
     }
 
     // ── Top produits ──
@@ -100,7 +184,7 @@ Pages.dashboard = {
               <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.74rem;font-weight:700;flex-shrink:0;background:${col}22;color:${col}">${i + 1}</div>
               <div style="flex:1;min-width:0">
                 <div style="font-size:.875rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.name)}</div>
-                <div style="font-size:.71rem;color:var(--text3);margin-top:1px">Invest: ${fF(s.invest)} · CA: ${fF(s.ca)}</div>
+                <div style="font-size:.71rem;color:var(--text3);margin-top:1px">Invest: ${fF(s.invest)} · CA: ${fF(s.ca)} · Marge: ${fP(s.margin)}</div>
                 <div style="height:4px;background:rgba(124,111,255,0.06);border-radius:99px;overflow:hidden;margin-top:6px">
                   <div style="width:${pct}%;height:100%;background:${bc};border-radius:99px"></div>
                 </div>
@@ -108,7 +192,7 @@ Pages.dashboard = {
               <div style="font-weight:700;font-size:.875rem;flex-shrink:0;color:${pc}">${fF(s.profit)}</div>
             </div>`;
         }).join('')
-      : EmptyState.html('Pas encore de ventes.');
+      : EmptyState.html('Pas encore de ventes.', 'Ajoutez votre première vente pour voir le classement.');
 
     // ── Alertes ──
     const alertColors = { warning: 'var(--yellow)', error: 'var(--red)', success: 'var(--green)', info: 'var(--blue)' };
@@ -121,10 +205,11 @@ Pages.dashboard = {
             <span style="flex-shrink:0;margin-top:1px">
               ${a.type === 'success' ? '✓' : a.type === 'error' ? '✕' : a.type === 'warning' ? '⚠' : 'ℹ'}
             </span>
-            <span>
+            <span style="flex:1">
               <strong>${esc(a.message)}</strong>
               ${a.detail ? `<br><span style="opacity:.8;font-size:.78rem">${esc(a.detail)}</span>` : ''}
             </span>
+            ${a.action ? `<button class="btn btn-sm btn-secondary" style="flex-shrink:0;font-size:.72rem;padding:6px 12px" onclick="Nav.go('${a.page}')">${esc(a.action)}</button>` : ''}
           </div>`)
         .join('')
       : `<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:10px;font-size:.83rem;background:var(--green-bg);border:1px solid var(--green-b);color:var(--green)">✓ <span>Tout est en ordre, aucune alerte.</span></div>`;
@@ -160,9 +245,11 @@ Pages.dashboard = {
       { label: 'Produits',      value: d.nProducts,  color: '' },
       { label: 'Ventes',        value: d.nSales,      color: '' },
       { label: 'Rentables',     value: d.allStats.filter(x => x.s.isProfitable).length, color: 'var(--green)' },
+      { label: 'En perte',      value: d.allStats.filter(x => x.s.isDeficit).length, color: d.allStats.filter(x => x.s.isDeficit).length > 0 ? 'var(--red)' : '' },
       { label: 'Clients',       value: d.nClients,    color: 'var(--blue)' },
       { label: 'Tâches',        value: `${doneTasks}/${totalTasks}`, color: '' },
       { label: 'Prog. Projets', value: `${avgProjPct}%`, color: 'var(--accent2)' },
+      { label: 'Livraisons en attente', value: d.nPending, color: d.nPending > 0 ? 'var(--orange)' : '' },
     ].map(item => `
       <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
         <div style="font-size:.66rem;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-weight:600">${item.label}</div>
@@ -182,6 +269,11 @@ Pages.dashboard = {
       .sort((a, b) => (b.sale_date || '').localeCompare(a.sale_date || ''))
       .slice(0, 3);
 
+    // Calculer le vrai profit avec les frais pub des ventes
+    const sales = State.getSalesByProduct(pid);
+    const totalPub = sales.reduce((sum, v) => sum + (v.fb_cost || 0) + (v.tiktok_cost || 0) + (v.ads_cost || 0) + (v.misc_cost || 0), 0);
+    const vraiProfit = s.ca - s.invest - (sales.reduce((sum, v) => sum + (v.shipping || 0), 0)) - totalPub;
+
     return `
       <div class="card" style="margin-bottom:20px;border-color:rgba(124,111,255,0.25)">
         <div class="card-header">
@@ -194,9 +286,11 @@ Pages.dashboard = {
         <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">
           ${[
             { label: 'Coût unitaire',    value: fF(s.unit),     color: 'var(--accent2)' },
+            { label: 'Profit net réel',  value: fF(vraiProfit), color: vraiProfit >= 0 ? 'var(--green)' : 'var(--red)' },
             { label: 'Stock restant',    value: `${s.stock} u.`, color: s.isOutOfStock ? 'var(--red)' : s.isLowStock ? 'var(--yellow)' : 'var(--green)' },
             { label: 'Unités vendues',   value: `${s.sold} / ${p.qty}`, color: 'var(--blue)' },
             { label: 'Meilleur canal',   value: s.bestChannel,   color: 'var(--accent2)' },
+            { label: 'Frais pub totaux', value: fF(totalPub),    color: totalPub > 0 ? 'var(--orange)' : 'var(--text3)' },
             { label: 'Livraisons',       value: State.getLivByProduct(pid).length, color: 'var(--orange)' },
             { label: 'Type fret',        value: p.fret_type || '—', color: 'var(--text)' },
           ].map(item => `
@@ -214,7 +308,7 @@ Pages.dashboard = {
                   <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface2);border-radius:8px;margin-bottom:6px;border:1px solid var(--border)">
                     <div>
                       <div style="font-size:.84rem;font-weight:600">${cl ? esc(cl.name) : 'Anonyme'}</div>
-                      <div style="font-size:.7rem;color:var(--text3)">${fmtDate(v.sale_date)} · ${esc(v.channel || '—')}</div>
+                      <div style="font-size:.7rem;color:var(--text3)">${fmtDate(v.sale_date)} · ${esc(v.channel || '—')}${v.fb_cost ? ' · Pub: ' + fF(v.fb_cost) : ''}</div>
                     </div>
                     <div style="font-weight:700;color:var(--blue)">${fF(v.price * v.qty)}</div>
                   </div>`;

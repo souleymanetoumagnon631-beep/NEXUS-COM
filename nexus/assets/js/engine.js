@@ -150,74 +150,382 @@ const Engine = {
   },
 
   // ══════════════════════════════════════════
-  //   ALERTES : Générer les alertes dashboard
+  //   ALERTES INTELLIGENTES — v2
+  //   [CORRIGÉ] Alertes actionnables, spécifiques,
+  //   orientées cash et conseils pour entrepreneur africain
   // ══════════════════════════════════════════
   getAlerts(allStats, filterProductId = '') {
     const alerts = [];
+    const sales  = filterProductId
+      ? State.getSalesByProduct(filterProductId)
+      : State.getSales();
 
-    // Stock faible
+    // ── 1. ALERTE CASH : Trésorerie réelle ──
+    const totalInvest = allStats.reduce((s, x) => s + x.s.invest, 0);
+    const totalCA     = allStats.reduce((s, x) => s + x.s.ca, 0);
+    const totalProfit = allStats.reduce((s, x) => s + x.s.profit, 0);
+    const totalExpenses = State.getTotalExpenses();
+    const netProfit   = totalProfit - totalExpenses;
+    const cashBalance = totalCA - totalInvest;
+
+    if (netProfit <= 0 && totalCA > 0) {
+      alerts.push({
+        type: 'error',
+        message: '🔴 Vous dépensez plus que vous ne gagnez',
+        detail: `Profit net: ${fF(netProfit)}. Vos dépenses fixes (${fF(totalExpenses)}) mangent votre marge. Conseil : augmentez vos prix de 10-15% ou réduisez une dépense fixe ce mois-ci.`,
+        action: 'Voir finances',
+        page: 'finances',
+      });
+    }
+
+    if (cashBalance < 0) {
+      alerts.push({
+        type: 'error',
+        message: '🔴 Trésorerie négative — vous n\'avez pas encore récupéré votre investissement',
+        detail: `Vous avez investi ${fF(totalInvest)} mais généré ${fF(totalCA)}. Il vous manque ${fF(Math.abs(cashBalance))} pour atteindre le point mort. Conseil : priorisez la vente des produits à forte marge.`,
+        action: 'Voir rentabilité',
+        page: 'rentabilite',
+      });
+    }
+
+    // ── 2. ALERTE STOCK : Rotation lente ──
+    const slowRotation = allStats.filter(x => {
+      const sold = x.s.sold;
+      const qty  = x.p.qty || 1;
+      return sold > 0 && (qty - sold) > sold * 2; // stock > 2x vendu
+    });
+    if (slowRotation.length) {
+      alerts.push({
+        type: 'warning',
+        message: '🐌 Rotation lente — stock qui ne se vend pas',
+        detail: slowRotation.slice(0, 2).map(x =>
+          `${x.p.name}: ${x.s.stock} en stock, seulement ${x.s.sold} vendu(s). Conseil : proposez une promo ou un lot pour écouler.`
+        ).join(' | '),
+        action: 'Voir produits',
+        page: 'produits',
+      });
+    }
+
+    // ── 3. ALERTE MARGE : Produits qui coûtent plus qu'ils ne rapportent ──
+    const lossLeaders = allStats.filter(x => x.s.isDeficit);
+    if (lossLeaders.length) {
+      alerts.push({
+        type: 'error',
+        message: '📉 Produits en perte — ils vous coûtent de l\'argent',
+        detail: lossLeaders.slice(0, 2).map(x =>
+          `${x.p.name}: perte de ${fF(Math.abs(x.s.profit))}. Conseil : augmentez le prix ou stoppez ce produit.`
+        ).join(' | '),
+        action: 'Analyser',
+        page: 'rentabilite',
+      });
+    }
+
+    // ── 4. ALERTE PUB : Pression publicitaire trop forte ──
+    const totalPubCosts = sales.reduce((s, v) =>
+      s + (v.fb_cost || 0) + (v.tiktok_cost || 0) + (v.ads_cost || 0) + (v.misc_cost || 0), 0
+    );
+    const totalShipping = sales.reduce((s, v) => s + (v.shipping || 0), 0);
+    const totalCosts = totalInvest + totalPubCosts + totalShipping + totalExpenses;
+    const pubRatio = totalCA > 0 ? (totalPubCosts / totalCA) * 100 : 0;
+
+    if (pubRatio > 30) {
+      alerts.push({
+        type: 'warning',
+        message: `📢 Publicité = ${pubRatio.toFixed(0)}% du CA — c'est trop élevé`,
+        detail: `Vous dépensez ${fF(totalPubCosts)} en pub pour ${fF(totalCA)} de ventes. Conseil : testez des canaux organiques (WhatsApp, bouche-à-oreille) ou réduisez les enchères.`,
+        action: 'Voir revenus',
+        page: 'revenus',
+      });
+    }
+
+    // ── 5. ALERTE CANAL : Dépendance excessive ──
+    const channelMap = {};
+    sales.forEach(s => {
+      const ch = s.channel || 'Autre';
+      if (!channelMap[ch]) channelMap[ch] = 0;
+      channelMap[ch] += (s.price || 0) * (s.qty || 0);
+    });
+    const totalChannelCA = Object.values(channelMap).reduce((a, b) => a + b, 0);
+    const dominantChannel = Object.entries(channelMap)
+      .sort((a, b) => b[1] - a[1])[0];
+    if (dominantChannel && totalChannelCA > 0) {
+      const ratio = (dominantChannel[1] / totalChannelCA) * 100;
+      if (ratio > 70) {
+        alerts.push({
+          type: 'warning',
+          message: `⚠️ ${ratio.toFixed(0)}% du CA vient d'un seul canal (${dominantChannel[0]})`,
+          detail: `Si ce canal s'arrête, votre business est en danger. Conseil : diversifiez sur au moins 2 autres canaux cette semaine.`,
+          action: 'Voir revenus',
+          page: 'revenus',
+        });
+      }
+    }
+
+    // ── 6. ALERTE CLIENTS : Fidélisation ──
+    const clients = State.getClients();
+    const clientsWithSales = new Set(sales.filter(s => s.client_id).map(s => s.client_id));
+    const repeatClients = clients.filter(c =>
+      sales.filter(s => s.client_id === c.id).length > 1
+    );
+    if (clients.length > 0 && repeatClients.length < clients.length * 0.2) {
+      alerts.push({
+        type: 'info',
+        message: '👤 Moins de 20% de vos clients sont fidèles',
+        detail: `Seulement ${repeatClients.length} client(s) sur ${clients.length} ont acheté plusieurs fois. Conseil : créez un programme de fidélité simple (réduction 10% au 2e achat).`,
+        action: 'Voir clients',
+        page: 'clients',
+      });
+    }
+
+    // ── 7. ALERTE STOCK FAIBLE ──
     const lowStock = allStats.filter(x => x.s.isLowStock);
     if (lowStock.length) {
       alerts.push({
-        type:    'warning',
-        message: `${lowStock.length} produit(s) en stock faible`,
-        detail:  lowStock.slice(0, 3).map(x => x.p.name).join(', '),
+        type: 'warning',
+        message: `📦 ${lowStock.length} produit(s) bientôt en rupture`,
+        detail: lowStock.slice(0, 3).map(x =>
+          `${x.p.name}: ${x.s.stock} restant(s) sur ${x.p.qty} acheté(s). Conseil : commandez le réapprovisionnement maintenant.`
+        ).join(' | '),
+        action: 'Voir achats',
+        page: 'achats',
       });
     }
 
-    // Rupture de stock
-    const outOfStock = allStats.filter(x => x.s.isOutOfStock);
-    if (outOfStock.length) {
-      alerts.push({
-        type:    'error',
-        message: `${outOfStock.length} produit(s) en rupture de stock`,
-        detail:  outOfStock.slice(0, 3).map(x => x.p.name).join(', '),
-      });
-    }
-
-    // Produits en déficit
-    const inLoss = allStats.filter(x => x.s.isDeficit);
-    if (inLoss.length) {
-      alerts.push({
-        type:    'error',
-        message: `${inLoss.length} produit(s) en déficit`,
-        detail:  inLoss.slice(0, 2).map(x => x.p.name).join(', '),
-      });
-    }
-
-    // Produits sans ventes
-    const noSales = allStats.filter(x => x.s.nSales === 0);
-    if (noSales.length && !filterProductId) {
-      alerts.push({
-        type:    'info',
-        message: `${noSales.length} produit(s) sans ventes`,
-        detail:  '',
-      });
-    }
-
-    // Tâches critiques
+    // ── 8. ALERTE TÂCHES CRITIQUES ──
     const critTasks = State.getTasks().filter(
       t => t.priority === 'critique' && t.status !== 'done'
     );
     if (critTasks.length) {
       alerts.push({
-        type:    'error',
-        message: `${critTasks.length} tâche(s) critique(s) en attente`,
-        detail:  '',
+        type: 'error',
+        message: `⏰ ${critTasks.length} tâche(s) critique(s) en attente`,
+        detail: critTasks.slice(0, 2).map(t => t.title).join(', '),
+        action: 'Voir tâches',
+        page: 'taches',
       });
     }
 
-    // Projets terminés
+    // ── 9. ALERTE PROJETS TERMINÉS ──
     const doneProjects = State.getProjects().filter(p => p.status === 'term');
     if (doneProjects.length) {
       alerts.push({
-        type:    'success',
-        message: `${doneProjects.length} projet(s) terminé(s) avec succès !`,
-        detail:  '',
+        type: 'success',
+        message: `🎉 ${doneProjects.length} projet(s) terminé(s) !`,
+        detail: doneProjects.slice(0, 2).map(p => p.name).join(', '),
+        action: '',
+        page: '',
+      });
+    }
+
+    // ── 10. CONSEIL GÉNÉRAL SI TOUT VA BIEN ──
+    if (alerts.length === 0) {
+      alerts.push({
+        type: 'success',
+        message: '✅ Business en bonne santé — continuez comme ça !',
+        detail: 'Vos marges sont bonnes, vos stocks tournent, et vos clients sont fidèles. Pensez à lancer un nouveau produit pour accélérer la croissance.',
+        action: '',
+        page: '',
       });
     }
 
     return alerts;
+  },
+
+  // ══════════════════════════════════════════
+  //   SCORE DE SANTÉ BUSINESS
+  //   [NOUVEAU] Score visuel rouge/orange/vert
+  //   basé sur 5 critères concrets
+  // ══════════════════════════════════════════
+  getBusinessHealthScore(filterProductId = '') {
+    const products = filterProductId
+      ? State.getProducts().filter(p => p.id === filterProductId)
+      : State.getProducts();
+    const sales = filterProductId
+      ? State.getSalesByProduct(filterProductId)
+      : State.getSales();
+
+    const allStats = products
+      .map(p => ({ p, s: this.getProductStats(p.id) }))
+      .filter(x => x.s !== null);
+
+    const totalInvest = allStats.reduce((s, x) => s + x.s.invest, 0);
+    const totalCA     = allStats.reduce((s, x) => s + x.s.ca, 0);
+    const totalProfit = allStats.reduce((s, x) => s + x.s.profit, 0);
+    const totalExpenses = State.getTotalExpenses();
+    const netProfit   = totalProfit - totalExpenses;
+    const cashBalance = totalCA - totalInvest;
+
+    const totalPubCosts = sales.reduce((s, v) =>
+      s + (v.fb_cost || 0) + (v.tiktok_cost || 0) + (v.ads_cost || 0) + (v.misc_cost || 0), 0
+    );
+    const pubRatio = totalCA > 0 ? (totalPubCosts / totalCA) * 100 : 0;
+
+    // Critères (chacun donne 0-20 points, max 100)
+    let score = 0;
+    const details = [];
+
+    // 1. Rentabilité (20 pts)
+    if (netProfit > 0) {
+      const margin = totalCA > 0 ? (netProfit / totalCA) * 100 : 0;
+      if (margin >= 30) { score += 20; details.push({ label: 'Marge nette > 30%', pts: 20, color: 'green' }); }
+      else if (margin >= 15) { score += 15; details.push({ label: `Marge nette ${margin.toFixed(0)}%`, pts: 15, color: 'green' }); }
+      else if (margin >= 5) { score += 10; details.push({ label: `Marge nette ${margin.toFixed(0)}% — faible`, pts: 10, color: 'orange' }); }
+      else { score += 5; details.push({ label: 'Marge nette < 5% — attention', pts: 5, color: 'orange' }); }
+    } else {
+      details.push({ label: 'Business en perte', pts: 0, color: 'red' });
+    }
+
+    // 2. Trésorerie (20 pts)
+    if (cashBalance > 0) {
+      const ratio = totalInvest > 0 ? (cashBalance / totalInvest) * 100 : 0;
+      if (ratio >= 50) { score += 20; details.push({ label: 'Trésorerie solide', pts: 20, color: 'green' }); }
+      else if (ratio >= 20) { score += 15; details.push({ label: 'Trésorerie correcte', pts: 15, color: 'green' }); }
+      else { score += 10; details.push({ label: 'Trésorerie faible', pts: 10, color: 'orange' }); }
+    } else {
+      details.push({ label: 'Trésorerie négative', pts: 0, color: 'red' });
+    }
+
+    // 3. Rotation stock (20 pts)
+    const slowRotation = allStats.filter(x => {
+      const sold = x.s.sold;
+      const qty  = x.p.qty || 1;
+      return sold > 0 && (qty - sold) > sold * 2;
+    });
+    const noSales = allStats.filter(x => x.s.nSales === 0);
+    if (slowRotation.length === 0 && noSales.length === 0) {
+      score += 20; details.push({ label: 'Bonne rotation des stocks', pts: 20, color: 'green' });
+    } else if (slowRotation.length <= 1 && noSales.length <= 1) {
+      score += 10; details.push({ label: `${slowRotation.length + noSales.length} produit(s) à rotation lente`, pts: 10, color: 'orange' });
+    } else {
+      details.push({ label: `${slowRotation.length + noSales.length} produit(s) qui ne tournent pas`, pts: 0, color: 'red' });
+    }
+
+    // 4. Pression pub (20 pts)
+    if (pubRatio <= 15) {
+      score += 20; details.push({ label: `Pub maîtrisée (${pubRatio.toFixed(0)}% du CA)`, pts: 20, color: 'green' });
+    } else if (pubRatio <= 30) {
+      score += 10; details.push({ label: `Pub modérée (${pubRatio.toFixed(0)}% du CA)`, pts: 10, color: 'orange' });
+    } else {
+      details.push({ label: `Pub trop chère (${pubRatio.toFixed(0)}% du CA)`, pts: 0, color: 'red' });
+    }
+
+    // 5. Diversification canaux (20 pts)
+    const channelMap = {};
+    sales.forEach(s => {
+      const ch = s.channel || 'Autre';
+      if (!channelMap[ch]) channelMap[ch] = 0;
+      channelMap[ch] += (s.price || 0) * (s.qty || 0);
+    });
+    const nChannels = Object.keys(channelMap).length;
+    if (nChannels >= 3) {
+      score += 20; details.push({ label: `${nChannels} canaux de vente actifs`, pts: 20, color: 'green' });
+    } else if (nChannels >= 2) {
+      score += 10; details.push({ label: `Seulement ${nChannels} canaux — diversifiez`, pts: 10, color: 'orange' });
+    } else {
+      details.push({ label: '1 seul canal — risque élevé', pts: 0, color: 'red' });
+    }
+
+    // Score final
+    let level, color, emoji;
+    if (score >= 80) { level = 'Excellent'; color = 'var(--green)'; emoji = '🟢'; }
+    else if (score >= 60) { level = 'Bon'; color = 'var(--accent2)'; emoji = '🟡'; }
+    else if (score >= 40) { level = 'Fragile'; color = 'var(--orange)'; emoji = '🟠'; }
+    else { level = 'Critique'; color = 'var(--red)'; emoji = '🔴'; }
+
+    return { score, level, color, emoji, details, maxScore: 100 };
+  },
+
+  // ══════════════════════════════════════════
+  //   CONSEIL DU JOUR
+  //   [NOUVEAU] Conseil actionnable basé sur
+  //   les données réelles du business
+  // ══════════════════════════════════════════
+  getDailyAdvice(filterProductId = '') {
+    const products = filterProductId
+      ? State.getProducts().filter(p => p.id === filterProductId)
+      : State.getProducts();
+    const sales = filterProductId
+      ? State.getSalesByProduct(filterProductId)
+      : State.getSales();
+
+    const allStats = products
+      .map(p => ({ p, s: this.getProductStats(p.id) }))
+      .filter(x => x.s !== null);
+
+    const totalCA = allStats.reduce((s, x) => s + x.s.ca, 0);
+    const totalProfit = allStats.reduce((s, x) => s + x.s.profit, 0);
+    const totalExpenses = State.getTotalExpenses();
+    const netProfit = totalProfit - totalExpenses;
+
+    const totalPubCosts = sales.reduce((s, v) =>
+      s + (v.fb_cost || 0) + (v.tiktok_cost || 0) + (v.ads_cost || 0) + (v.misc_cost || 0), 0
+    );
+    const pubRatio = totalCA > 0 ? (totalPubCosts / totalCA) * 100 : 0;
+
+    // Meilleur produit
+    const bestProduct = [...allStats].sort((a, b) => b.s.profit - a.s.profit)[0];
+
+    // Produit en perte
+    const worstProduct = [...allStats].filter(x => x.s.isDeficit)
+      .sort((a, b) => a.s.profit - b.s.profit)[0];
+
+    // Stock faible
+    const lowStock = allStats.filter(x => x.s.isLowStock)
+      .sort((a, b) => a.s.stock - b.s.stock)[0];
+
+    // Générer le conseil
+    const advices = [];
+
+    if (netProfit <= 0) {
+      advices.push({
+        icon: '💰',
+        title: 'Priorité : devenir rentable',
+        text: `Vous êtes en perte de ${fF(Math.abs(netProfit))}. Concentrez-vous sur vos 2-3 produits les plus vendus et augmentez leurs prix de 10%.`,
+      });
+    }
+
+    if (bestProduct && bestProduct.s.profit > 0) {
+      advices.push({
+        icon: '⭐',
+        title: `Votre meilleur produit : ${bestProduct.p.name}`,
+        text: `Il génère ${fF(bestProduct.s.profit)} de profit avec une marge de ${bestProduct.s.margin.toFixed(0)}%. Mettez plus de budget pub dessus cette semaine.`,
+      });
+    }
+
+    if (worstProduct) {
+      advices.push({
+        icon: '📉',
+        title: `Produit à risque : ${worstProduct.p.name}`,
+        text: `Perte de ${fF(Math.abs(worstProduct.s.profit))}. Soit vous augmentez le prix, soit vous arrêtez ce produit.`,
+      });
+    }
+
+    if (pubRatio > 25) {
+      advices.push({
+        icon: '📢',
+        title: 'Réduisez vos coûts pub',
+        text: `La pub représente ${pubRatio.toFixed(0)}% de votre CA. Essayez le marketing organique (WhatsApp, groupes Facebook) cette semaine.`,
+      });
+    }
+
+    if (lowStock) {
+      advices.push({
+        icon: '📦',
+        title: `Stock bientôt épuisé : ${lowStock.p.name}`,
+        text: `Il ne reste que ${lowStock.s.stock} unité(s). Commandez le réapprovisionnement maintenant pour éviter la rupture.`,
+      });
+    }
+
+    // Conseil par défaut si tout va bien
+    if (advices.length === 0) {
+      advices.push({
+        icon: '🚀',
+        title: 'Tout va bien — accélérez !',
+        text: 'Votre business est rentable et vos stocks tournent. C\'est le moment idéal pour lancer un nouveau produit ou tester un nouveau canal de vente.',
+      });
+    }
+
+    return advices.slice(0, 3); // max 3 conseils
   },
 
   // ══════════════════════════════════════════
