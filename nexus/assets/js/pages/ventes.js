@@ -90,6 +90,8 @@ Pages.ventes = {
     const qty      = num('v-qty');
     const shipping = num('v-shipping');
     const ca       = price * qty;
+    const pubCosts = num('v-fb') + num('v-tiktok') + num('v-ads') + num('v-misc');
+    const totalCosts = shipping + pubCosts;
 
     $('pv-ca').textContent = fF(ca);
 
@@ -98,7 +100,7 @@ Pages.ventes = {
     if (pid) {
       const s = Engine.getProductStats(pid);
       if (s) {
-        const profit = ca - s.unit * qty - shipping;
+        const profit = ca - s.unit * qty - totalCosts;
         el.textContent  = fF(profit);
         el.style.color  = profit >= 0 ? 'var(--green)' : 'var(--red)';
       }
@@ -128,6 +130,10 @@ Pages.ventes = {
       price,
       qty,
       shipping:   num('v-shipping') || 0,
+      fb_cost:    num('v-fb')   || 0,
+      tiktok_cost: num('v-tiktok') || 0,
+      ads_cost:   num('v-ads')  || 0,
+      misc_cost:  num('v-misc') || 0,
       channel:    str('v-channel') || 'WhatsApp',
       sale_date:  str('v-date')    || today(),
       note:       str('v-note'),

@@ -57,8 +57,6 @@ Pages.achats = {
     const p = {
       stock: num('a-stock'), fret: num('a-fret'),
       customs: num('a-customs'), packaging: num('a-packaging'),
-      fb: num('a-fb'), tiktok: num('a-tiktok'),
-      ads: num('a-ads'), misc: num('a-misc'),
       delivery: 0,
       qty: num('a-qty'),
     };
@@ -86,10 +84,6 @@ Pages.achats = {
       fret:       num('a-fret'),
       customs:    num('a-customs'),
       packaging:  num('a-packaging'),
-      fb:         num('a-fb'),
-      tiktok:     num('a-tiktok'),
-      ads:        num('a-ads'),
-      misc:       num('a-misc'),
       delivery:   0,
     };
 
@@ -113,8 +107,7 @@ Pages.achats = {
   clearForm() {
     Form.clear(
       'a-name','a-store','a-qty','a-stock',
-      'a-fret','a-customs','a-packaging',
-      'a-fb','a-tiktok','a-ads','a-misc'
+      'a-fret','a-customs','a-packaging'
     );
     const fretType = $('a-fret-type');
     if (fretType) fretType.value = 'Aérien';
@@ -136,10 +129,6 @@ Pages.achats = {
       { k: 'fret',      lb: 'Fret',           t: 'number' },
       { k: 'customs',   lb: 'Douane',         t: 'number' },
       { k: 'packaging', lb: 'Emballage',      t: 'number' },
-      { k: 'fb',        lb: 'Facebook Ads',   t: 'number' },
-      { k: 'tiktok',    lb: 'TikTok Ads',     t: 'number' },
-      { k: 'ads',       lb: 'Autres pubs',    t: 'number' },
-      { k: 'misc',      lb: 'Autres frais',   t: 'number', full: true },
     ];
 
     const bodyHtml = `
@@ -188,10 +177,6 @@ Pages.achats = {
       fret:      parseFloat($('em-fret')?.value)      || 0,
       customs:   parseFloat($('em-customs')?.value)   || 0,
       packaging: parseFloat($('em-packaging')?.value) || 0,
-      fb:        parseFloat($('em-fb')?.value)        || 0,
-      tiktok:    parseFloat($('em-tiktok')?.value)    || 0,
-      ads:       parseFloat($('em-ads')?.value)       || 0,
-      misc:      parseFloat($('em-misc')?.value)      || 0,
     };
 
     if (!payload.name) return Toast.err('Nom requis.');

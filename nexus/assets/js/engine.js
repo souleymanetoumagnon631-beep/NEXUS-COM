@@ -1,4 +1,4 @@
-// ══════════════════════════════════════════
+ntegration // ══════════════════════════════════════════
 //   NEXUS — Moteur de Calcul Métier
 //   Toute la logique financière ici
 // ══════════════════════════════════════════
@@ -7,6 +7,9 @@ const Engine = {
 
   // ══════════════════════════════════════════
   //   PRODUIT : Calcul investissement total
+  //   [CORRIGÉ] Les frais pub (fb, tiktok, ads, misc) sont maintenant
+  //   saisis dans les ventes, pas dans les achats.
+  //   computeInvest() ne calcule que le coût produit pur.
   // ══════════════════════════════════════════
   computeInvest(product) {
     return (
@@ -14,11 +17,20 @@ const Engine = {
       (product.fret     || 0) +
       (product.delivery || 0) +
       (product.customs  || 0) +
-      (product.packaging|| 0) +
-      (product.fb       || 0) +
-      (product.tiktok   || 0) +
-      (product.ads      || 0) +
-      (product.misc     || 0)
+      (product.packaging|| 0)
+    );
+  },
+
+  // ══════════════════════════════════════════
+  //   VENTE : Calcul des frais de vente totaux
+  // ══════════════════════════════════════════
+  computeSaleCosts(sale) {
+    return (
+      (sale.shipping || 0) +
+      (sale.fb_cost    || 0) +
+      (sale.tiktok_cost|| 0) +
+      (sale.ads_cost   || 0) +
+      (sale.misc_cost  || 0)
     );
   },
 
