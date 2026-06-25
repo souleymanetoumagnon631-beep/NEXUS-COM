@@ -119,8 +119,8 @@ const StateProxy = (() => {
   }
 
   // Debug : logger tous les changements
-  function debug(on = true) {
-    if (on) {
+  function debug(enable = true) {
+    if (enable) {
       on('change', (data) => console.log('[StateProxy]', data.type, data.entity, data.args));
     } else {
       listeners.clear();

@@ -123,19 +123,23 @@ const DB = {
     },
 
     async getByProduct(productId) {
+      const uid = await DB._getUserId();
       const { data, error } = await NEXUS.supabase
         .from('sales')
         .select('*')
         .eq('product_id', productId)
+        .eq('user_id', uid)
         .order('sale_date', { ascending: false });
       if (error) DB.handleError(error, 'sales.getByProduct');
       return data || [];
     },
 
     async getByPeriod(startDate, endDate) {
+      const uid = await DB._getUserId();
       const { data, error } = await NEXUS.supabase
         .from('sales')
         .select('*')
+        .eq('user_id', uid)
         .gte('sale_date', startDate)
         .lte('sale_date', endDate)
         .order('sale_date', { ascending: false });
@@ -202,11 +206,13 @@ const DB = {
 
     // [M2] CORRIGÉ : échappement des caractères spéciaux dans ilike
     async search(query) {
+      const uid = await DB._getUserId();
       // Échapper les caractères dangereux pour ilike PostgreSQL
       const safe = query.replace(/[%_\\]/g, c => `\\${c}`);
       const { data, error } = await NEXUS.supabase
         .from('clients')
         .select('*')
+        .eq('user_id', uid)
         .or(`name.ilike.%${safe}%,phone.ilike.%${safe}%`)
         .order('name');
       if (error) DB.handleError(error, 'clients.search');
@@ -270,6 +276,7 @@ const DB = {
     },
 
     async getByStatus(status) {
+      const uid = await DB._getUserId();
       const { data, error } = await NEXUS.supabase
         .from('livraisons')
         .select(`
@@ -277,6 +284,7 @@ const DB = {
           client:client_id   ( id, name, phone ),
           product:product_id ( id, name )
         `)
+        .eq('user_id', uid)
         .eq('status', status)
         .order('delivery_date');
       if (error) DB.handleError(error, 'livraisons.getByStatus');
@@ -343,9 +351,11 @@ const DB = {
     },
 
     async getByStatus(status) {
+      const uid = await DB._getUserId();
       const { data, error } = await NEXUS.supabase
         .from('projects')
         .select('*')
+        .eq('user_id', uid)
         .eq('status', status)
         .order('created_at', { ascending: false });
       if (error) DB.handleError(error, 'projects.getByStatus');
@@ -475,9 +485,11 @@ const DB = {
     },
 
     async getByStatus(status) {
+      const uid = await DB._getUserId();
       const { data, error } = await NEXUS.supabase
         .from('ideas')
         .select('*')
+        .eq('user_id', uid)
         .eq('status', status)
         .order('created_at', { ascending: false });
       if (error) DB.handleError(error, 'ideas.getByStatus');
