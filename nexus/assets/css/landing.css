@@ -91,11 +91,16 @@
 .l-nav-login:hover{border-color:rgba(124,111,255,0.4);color:var(--accent2)}
 
 /* ══════════════════════════════════════════
-   HERO
+   HERO (Mise à jour avec Image Parallaxe)
 ══════════════════════════════════════════ */
 .l-hero{
   flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
   padding:140px 24px 60px;text-align:center;position:relative;overflow:hidden;min-height:100vh;
+  /* Image Parallaxe avec fondu noir vers le bas */
+  background-image: linear-gradient(to bottom, rgba(7, 8, 15, 0.6) 0%, rgba(7, 8, 15, 0.9) 70%, #07080f 100%), url('https://www.photo-pick.com/online/Bk7kkTRp.link');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
 }
 .l-hero::before{
   content:'';position:absolute;inset:0;
@@ -352,15 +357,19 @@
 .l-footer-bottom{display:flex;align-items:center;justify-content:space-between;max-width:1050px;margin:0 auto;padding-top:20px;border-top:1px solid var(--border);color:var(--text3);font-size:.78rem;flex-wrap:wrap;gap:12px}
 
 /* ══════════════════════════════════════════
-   MOBILE — Tout le responsive
+   MOBILE — Tout le responsive (Mise à jour)
 ══════════════════════════════════════════ */
 @media(max-width:1024px){
   .l-features-grid,.l-resources-grid{grid-template-columns:repeat(2,1fr)}
   .l-footer-grid{grid-template-columns:1fr 1fr;gap:30px}
 }
 @media(max-width:900px){
-  .l-nav{padding:14px 20px}
-  .l-nav.scrolled{padding:10px 20px}
+  /* Réduction du padding pour affiner la barre sur mobile */
+  .l-nav{padding:8px 20px}
+  .l-nav.scrolled{padding:6px 20px}
+  .l-logo-icon{width:28px;height:28px}
+  .l-nav-cta, .l-nav-login{padding:6px 14px;font-size:.75rem}
+
   .l-hero{padding:120px 20px 40px;min-height:auto}
   .l-features,.l-modules,.l-resources,.l-contact,.l-cta-section,.l-pricing{padding:60px 20px}
   .l-mockup{max-width:100%}
@@ -379,7 +388,9 @@
   .l-hamburger{display:flex}
   .l-nav-links{
     position:fixed;top:0;left:0;right:0;bottom:0;
-    background:rgba(7,8,15,0.97);backdrop-filter:blur(30px);
+    /* Fond plein forcé pour éviter le chevauchement transparent ! */
+    background:#07080f;
+    display:flex;
     flex-direction:column;justify-content:center;align-items:center;
     gap:12px;opacity:0;pointer-events:none;transition:all .4s cubic-bezier(.4,0,.2,1);
     z-index:999;
@@ -394,8 +405,10 @@
   .l-footer-bottom{flex-direction:column;text-align:center}
 }
 @media(max-width:500px){
-  .l-nav{padding:12px 16px}
-  .l-nav.scrolled{padding:10px 16px}
+  /* Barre encore plus fine pour les petits écrans */
+  .l-nav{padding:8px 16px}
+  .l-nav.scrolled{padding:6px 16px}
+
   .l-hero-title{font-size:2rem}
   .l-hero{padding:100px 16px 30px}
   .l-modules-grid{grid-template-columns:repeat(2,1fr)}
