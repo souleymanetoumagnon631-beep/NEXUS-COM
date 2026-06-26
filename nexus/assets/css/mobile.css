@@ -327,10 +327,19 @@
 /* ── LANDING PAGE ── */
 @media (max-width: 768px) {
   .l-nav {
-    padding: 14px 20px !important;
+    padding: 8px 16px !important; /* Version bcp plus fine */
     flex-wrap: wrap !important;
     gap: 8px !important;
   }
+  
+  /* CORRECTIF : Force le fond noir opaque derrière le menu mobile ouvert */
+  .l-nav-links {
+    background-color: #07080f !important; 
+  }
+  .l-nav-links.open {
+    background-color: #07080f !important;
+  }
+
   .l-nav-actions {
     flex-wrap: wrap !important;
     gap: 8px !important;
@@ -393,10 +402,11 @@
   .l-hero-title {
     font-size: 1.8rem !important;
   }
+  /* Ajustement de la taille des boutons pour éviter qu'ils mangent tout l'espace */
   .l-nav-cta,
   .l-btn-main {
-    font-size: .87rem !important;
-    padding: 14px 24px !important;
+    font-size: .8rem !important;
+    padding: 8px 16px !important;
   }
 }
 
