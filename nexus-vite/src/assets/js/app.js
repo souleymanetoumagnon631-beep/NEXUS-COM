@@ -1,0 +1,446 @@
+// ══════════════════════════════════════════
+//   NEXUS — Point d'entrée de l'application
+//   v1.2 — Corrections appliquées
+//
+//   CORRECTIONS :
+//   [C5] Realtime étendu à toutes les tables
+//   [C3] Vérification session robuste
+//   [C6] Message d'import aligné sur le comportement réel (fusion non-destructive)
+// ══════════════════════════════════════════
+
+(async function initNexus() {
+  try {
+    // ── 1. Guard Auth ──
+    const ok = await Auth.guardDashboard();
+    if (!ok) return;
+
+    // ── 2. Charger toutes les données Supabase ──
+    await State.init();
+
+    // ── 2b. Activer la détection de changements d'état ──
+    StateProxy.enable();
+
+    // ── 3. Init thème ──
+    Theme.init();
+
+    // ── 4. Init UI ──
+    initUserUI();
+    Badges.update();
+    SubscriptionUI.render();
+
+    // ── 5. Enregistrer les renderers de pages ──
+    registerPages();
+
+    // ── 6. Render dashboard ──
+    Pages.dashboard.render();
+
+    // ── 7. Cacher le loader, afficher l'app ──
+    showApp();
+
+    // ── 8. Init realtime Supabase (étendu) ──
+    initRealtime();
+
+    // ── 9. Keyboard shortcuts ──
+    initKeyboardShortcuts();
+
+    console.log('[NEXUS] Application prête ✓');
+
+  } catch (err) {
+    console.error('[NEXUS] Erreur fatale :', err);
+    showFatalError(err.message);
+  }
+})();
+
+// ══════════════════════════════════════════
+//   AFFICHER L'APP
+// ══════════════════════════════════════════
+function showApp() {
+  const loader = $('app-loader');
+  const app    = $('app');
+
+  if (loader) {
+    loader.classList.add('hide');
+    setTimeout(() => loader.style.display = 'none', 400);
+  }
+  if (app) app.style.display = 'flex';
+}
+
+// ══════════════════════════════════════════
+//   ERREUR FATALE
+// ══════════════════════════════════════════
+function showFatalError(msg) {
+  const loader = $('app-loader');
+  if (loader) {
+    loader.innerHTML = `
+      <div style="text-align:center;padding:40px;max-width:420px">
+        <div style="font-size:2rem;margin-bottom:16px">⚠️</div>
+        <div style="font-size:1rem;font-weight:700;color:#f87171;margin-bottom:10px">
+          Erreur de chargement
+        </div>
+        <div style="font-size:.84rem;color:#8892a4;line-height:1.6;margin-bottom:24px">
+          ${esc(msg || 'Une erreur inattendue est survenue.')}
+        </div>
+        <button onclick="location.reload()" style="
+          background:linear-gradient(135deg,#7c6fff,#8b5cf6);
+          color:#fff;border:none;padding:12px 28px;border-radius:10px;
+          font-size:.875rem;font-weight:700;cursor:pointer">
+          Recharger la page
+        </button>
+      </div>`;
+  }
+}
+
+// ══════════════════════════════════════════
+//   UI UTILISATEUR
+// ══════════════════════════════════════════
+function initUserUI() {
+  const user = window.__SESSION__?.user;
+  if (!user) return;
+
+  const name     = user.user_metadata?.full_name || user.email?.split('@')[0] || 'U';
+  const email    = user.email || '';
+  const initials = name.charAt(0).toUpperCase();
+
+  const avatar = $('user-avatar');
+  if (avatar) avatar.textContent = initials;
+
+  const menuName  = $('menu-user-name');
+  const menuEmail = $('menu-user-email');
+  if (menuName)  menuName.textContent  = name;
+  if (menuEmail) menuEmail.textContent = email;
+
+  const compteEmail = $('compte-email');
+  const compteName  = $('compte-name');
+  if (compteEmail) compteEmail.value = email;
+  if (compteName)  compteName.value  = name;
+}
+
+// ══════════════════════════════════════════
+//   ENREGISTRER LES PAGES
+// ══════════════════════════════════════════
+function registerPages() {
+  Nav.register('dashboard',   () => Pages.dashboard?.render?.());
+  Nav.register('achats',      () => Pages.achats?.render?.());
+  Nav.register('rentabilite', () => Pages.rentabilite?.render?.());
+  Nav.register('produits',    () => Pages.produits?.render?.());
+  Nav.register('projets',     () => Pages.projets?.render?.());
+  Nav.register('taches',      () => Pages.taches?.render?.());
+  Nav.register('revenus',     () => Pages.revenus?.render?.());
+  Nav.register('clients',     () => Pages.clients?.render?.());
+  Nav.register('livraisons',  () => Pages.livraisons?.render?.());
+  Nav.register('finances',    () => Pages.finances?.render?.());
+  Nav.register('idees',       () => Pages.idees?.render?.());
+  Nav.register('relances',    () => Pages.relances?.render?.());
+  Nav.register('marketing',   () => Pages.marketing?.render?.());
+  Nav.register('compte',      () => Pages.compte?.render?.());
+}
+
+// ══════════════════════════════════════════
+//   [C5] REALTIME SUPABASE — ÉTENDU
+//   Toutes les tables sont maintenant écoutées.
+//   Chaque événement met à jour le State local
+//   et rafraîchit la page active si nécessaire.
+// ══════════════════════════════════════════
+function initRealtime() {
+  DB.realtime.subscribeAll({
+
+    // ── Ventes ──
+    onNewSale(sale) {
+      if (!State.getSale(sale.id)) {
+        State.addSale(sale);
+        Badges.update();
+        Nav.refreshIfActive('dashboard');
+        Nav.refreshIfActive('ventes');
+        Nav.refreshIfActive('revenus');
+        Toast.info('Nouvelle vente enregistrée en temps réel');
+      }
+    },
+
+    // ── Livraisons ──
+    onLivraisonChange(payload) {
+      const { eventType, new: n, old: o } = payload;
+      if      (eventType === 'INSERT') State.addLivraison(n);
+      else if (eventType === 'UPDATE') State.updateLivraison(n.id, n);
+      else if (eventType === 'DELETE') State.removeLivraison(o.id);
+      Badges.update();
+      Nav.refreshIfActive('livraisons');
+      Nav.refreshIfActive('dashboard');
+    },
+
+    // ── Produits ──
+    onProductChange(payload) {
+      const { eventType, new: n, old: o } = payload;
+      if      (eventType === 'INSERT') State.addProduct(n);
+      else if (eventType === 'UPDATE') State.updateProduct(n.id, n);
+      else if (eventType === 'DELETE') State.removeProduct(o.id);
+      Badges.update();
+      Nav.refreshIfActive('achats');
+      Nav.refreshIfActive('dashboard');
+      Nav.refreshIfActive('rentabilite');
+      Nav.refreshIfActive('produits');
+      Nav.refreshIfActive('marketing');
+      // [CORRIGÉ 8.4] Invalider le cache marketing quand un produit change
+      if (window.Pages?.marketing?.invalidateCache) {
+        Pages.marketing.invalidateCache(eventType === 'DELETE' ? o.id : n.id);
+      }
+    },
+
+    // ── Clients ──
+    onClientChange(payload) {
+      const { eventType, new: n, old: o } = payload;
+      if      (eventType === 'INSERT') State.addClient(n);
+      else if (eventType === 'UPDATE') State.updateClient(n.id, n);
+      else if (eventType === 'DELETE') State.removeClient(o.id);
+      Badges.update();
+      Nav.refreshIfActive('clients');
+    },
+
+    // ── Projets ──
+    onProjectChange(payload) {
+      const { eventType, new: n, old: o } = payload;
+      if      (eventType === 'INSERT') State.addProject(n);
+      else if (eventType === 'UPDATE') State.updateProject(n.id, n);
+      else if (eventType === 'DELETE') State.removeProject(o.id);
+      Badges.update();
+      Nav.refreshIfActive('projets');
+      Nav.refreshIfActive('dashboard');
+    },
+
+    // ── Tâches ──
+    onTaskChange(payload) {
+      const { eventType, new: n, old: o } = payload;
+      if      (eventType === 'INSERT') State.addTask(n);
+      else if (eventType === 'UPDATE') State.updateTask(n.id, n);
+      else if (eventType === 'DELETE') State.removeTask(o.id);
+      Badges.update();
+      Nav.refreshIfActive('taches');
+      Nav.refreshIfActive('dashboard');
+    },
+
+    // ── Idées ──
+    onIdeaChange(payload) {
+      const { eventType, new: n, old: o } = payload;
+      if      (eventType === 'INSERT') State.addIdea(n);
+      else if (eventType === 'UPDATE') State.updateIdea(n.id, n);
+      else if (eventType === 'DELETE') State.removeIdea(o.id);
+      Badges.update();
+      Nav.refreshIfActive('idees');
+    },
+
+    // ── Dépenses ──
+    onExpenseChange(payload) {
+      const { eventType, new: n, old: o } = payload;
+      if      (eventType === 'INSERT') State.addExpense(n);
+      else if (eventType === 'UPDATE') State.updateExpense(n.id, n);
+      else if (eventType === 'DELETE') State.removeExpense(o.id);
+      Nav.refreshIfActive('finances');
+      Nav.refreshIfActive('dashboard');
+    },
+
+    // ── Angles marketing ──
+    onAngleChange(payload) {
+      const { eventType, new: n, old: o } = payload;
+      if      (eventType === 'INSERT') { if (!State.data.angles.find(a => a.id === n.id)) State.addAngle(n); }
+      else if (eventType === 'DELETE') State.removeAngle(o.id);
+      Nav.refreshIfActive('marketing');
+    },
+
+    // ── Scripts marketing ──
+    onScriptChange(payload) {
+      const { eventType, new: n, old: o } = payload;
+      if      (eventType === 'INSERT') { if (!State.data.scripts.find(s => s.id === n.id)) State.addScript(n); }
+      else if (eventType === 'DELETE') State.removeScript(o.id);
+      Nav.refreshIfActive('marketing');
+    },
+
+    // ── Copies marketing ──
+    onCopyChange(payload) {
+      const { eventType, new: n, old: o } = payload;
+      if      (eventType === 'INSERT') { if (!State.data.copies.find(c => c.id === n.id)) State.addCopy(n); }
+      else if (eventType === 'DELETE') State.removeCopy(o.id);
+      Nav.refreshIfActive('marketing');
+    },
+
+    // ── Offres sauvegardées ──
+    onOfferChange(payload) {
+      const { eventType, new: n, old: o } = payload;
+      if      (eventType === 'INSERT') { if (!State.data.offers.find(of => of.id === n.id)) State.addOffer(n); }
+      else if (eventType === 'DELETE') State.removeOffer(o.id);
+      Nav.refreshIfActive('relances');
+    },
+  });
+}
+
+// ══════════════════════════════════════════
+//   PAGE : MON COMPTE
+// ══════════════════════════════════════════
+Pages.compte = {
+
+  async render() {
+    const sub   = window.__SESSION__?.subscription;
+    const badge = Auth.getSubscriptionBadge(sub);
+    const el    = $('compte-sub-info');
+    if (!el) return;
+
+    const periodEnd = sub?.plan === 'trial'
+      ? sub.trial_ends_at
+      : sub?.current_period_end;
+
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <span style="font-size:1.3rem">${badge.icon}</span>
+            <span style="font-size:1rem;font-weight:700;color:${badge.color}">${badge.label}</span>
+          </div>
+          ${periodEnd
+            ? `<div style="font-size:.8rem;color:var(--text2)">
+                ${sub?.plan === 'trial' ? 'Essai expire le' : 'Renouvellement le'} :
+                <strong>${fmtDate(periodEnd?.split('T')[0])}</strong>
+              </div>`
+            : ''}
+        </div>
+        ${sub?.plan === 'trial' || sub?.plan === 'monthly'
+          ? `<button class="btn btn-primary" onclick="Pages.compte?.upgrade?.()">
+              ${sub?.plan === 'trial' ? 'Choisir un plan' : 'Passer à l\'annuel'}
+            </button>`
+          : '<span class="badge bg">Plan actif</span>'}
+      </div>
+      ${sub?.plan === 'trial'
+        ? `<div style="margin-top:16px;padding:14px;background:var(--yellow-bg);border:1px solid var(--yellow-b);border-radius:10px;font-size:.82rem;color:var(--yellow);line-height:1.6">
+            Votre essai gratuit se termine bientôt. Abonnez-vous pour conserver l'accès à NEXUS et à toutes vos données.
+          </div>`
+        : ''}
+      <div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:.66rem;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-weight:600">Plan actuel</div>
+          <div style="font-size:.96rem;font-weight:700">${NEXUS.plans[sub?.plan]?.name || '—'}</div>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:.66rem;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-weight:600">Prix</div>
+          <div style="font-size:.96rem;font-weight:700;color:var(--accent2)">${NEXUS.plans[sub?.plan]?.label || '—'}</div>
+        </div>
+      </div>`;
+  },
+
+  async saveProfile() {
+    const name = str('compte-name');
+    if (!name) return Toast.err('Nom requis.');
+
+    await Action.run(
+      async () => {
+        await NEXUS.supabase.auth.updateUser({ data: { full_name: name } });
+        if (window.__SESSION__?.user?.user_metadata) {
+          window.__SESSION__.user.user_metadata.full_name = name;
+        }
+        initUserUI();
+      },
+      { successMsg: 'Profil mis à jour.', errorMsg: 'Erreur lors de la mise à jour.' }
+    );
+  },
+
+  async changePassword() {
+    const pwd  = $('compte-pwd')?.value || '';
+    const pwd2 = $('compte-pwd2')?.value || '';
+
+    if (pwd.length < 8) return Toast.err('Minimum 8 caractères.');
+    if (pwd !== pwd2)   return Toast.err('Les mots de passe ne correspondent pas.');
+
+    await Action.run(
+      () => Auth.updatePassword(pwd),
+      { successMsg: 'Mot de passe mis à jour.' }
+    );
+
+    Form.clear('compte-pwd', 'compte-pwd2');
+  },
+
+  async upgrade() {
+    const sub  = window.__SESSION__?.subscription;
+    const plan = sub?.plan === 'trial' ? 'monthly' : 'annual';
+
+    try {
+      await PayTech.payUpgrade(plan);
+    } catch (err) {
+      Toast.err(`Erreur paiement : ${err.message}`);
+    }
+  },
+
+  confirmReset() {
+    if (!confirm('⚠️ Supprimer TOUTES vos données ? Cette action est irréversible.')) return;
+    if (!confirm('Dernière confirmation : supprimer définitivement ?')) return;
+    this._resetAll();
+  },
+
+  async _resetAll() {
+    await Action.run(
+      async () => {
+        const uid = DB.userId();
+
+        // [C1] Ordre FK-safe pour la réinitialisation aussi
+        const wipeOrder = [
+          'marketing_scripts', 'marketing_copies',
+          'tasks', 'sales', 'livraisons',
+          'marketing_data', 'marketing_angles', 'saved_offers', 'projects',
+          'clients', 'ideas', 'fixed_expenses', 'products',
+        ];
+
+        for (const table of wipeOrder) {
+          await NEXUS.supabase.from(table).delete().eq('user_id', uid);
+        }
+
+        await State.init();
+        Badges.update();
+        Pages.dashboard.render();
+        Nav.go('dashboard');
+      },
+      { successMsg: 'Toutes les données ont été supprimées.', errorMsg: 'Erreur lors de la réinitialisation.' }
+    );
+  },
+};
+
+// ══════════════════════════════════════════
+//   IMPORT JSON
+//
+//   [C6] CORRIGÉ : le message reflète maintenant le comportement RÉEL
+//   de DB.importBackup() — une FUSION NON-DESTRUCTIVE :
+//     • Les données déjà présentes en base ne sont jamais supprimées
+//     • Seuls les enregistrements absents (nouveaux id) sont ajoutés
+//     • Aucune perte de données possible, même en cas d'erreur partielle
+//
+//   L'ancien message ("remplacera TOUTES vos données actuelles") était
+//   FAUX et faisait croire à un écrasement destructeur qui n'a jamais
+//   lieu dans le code réel. Corrigé pour éviter la confusion et la
+//   méfiance injustifiée de l'utilisateur envers la fonctionnalité.
+// ══════════════════════════════════════════
+async function handleImportFile(event) {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+
+  const confirmed = confirm(
+    'Importer ce fichier va AJOUTER les données qu\'il contient à vos données actuelles.\n\n' +
+    '• Les enregistrements déjà présents en base seront conservés tels quels (aucun écrasement).\n' +
+    '• Seuls les nouveaux enregistrements (absents de votre compte) seront importés.\n' +
+    '• Aucune donnée existante ne sera supprimée ou modifiée.\n\n' +
+    'Continuer l\'importation ?'
+  );
+  if (!confirmed) return;
+
+  await Action.run(
+    async () => {
+      const result = await DB.importBackup(file);
+      await State.init();
+      Badges.update();
+      Nav.go(State.ui.currentPage || 'dashboard');
+
+      if (result.warnings.length) {
+        Toast.warn(
+          `Importation terminée avec ${result.warnings.length} avertissement(s) : ` +
+          'certains liens (produit/client/angle) n\'ont pas pu être restaurés. Voir la console pour le détail.'
+        );
+        console.warn('[Import] Avertissements FK :', result.warnings);
+      }
+    },
+    { successMsg: 'Importation réussie : les nouvelles données ont été ajoutées.', errorMsg: 'Échec de l\'importation.' }
+  );
+}

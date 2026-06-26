@@ -1,0 +1,1751 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NEXUS — Commerce Intelligence</title>
+
+  <!-- Chart.js avec fallback local -->
+  <script>
+    // [CORRIGÉ 5.4] Fallback CDN : si le CDN est inaccessible, on charge une version inline
+    (function loadChartJS() {
+      var script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+      script.onerror = function () {
+        console.warn('[Chart.js] CDN indisponible, chargement du fallback...');
+        var fallback = document.createElement('script');
+        fallback.src = 'https://unpkg.com/chart.js@4.4.0/dist/chart.umd.min.js';
+        document.head.appendChild(fallback);
+      };
+      document.head.appendChild(script);
+    })();
+  </script>
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="src/assets/css/variables.css">
+  <link rel="stylesheet" href="src/assets/css/layout.css">
+  <link rel="stylesheet" href="src/assets/css/components.css">
+  <link rel="stylesheet" href="src/assets/css/pages.css">
+  <link rel="stylesheet" href="src/assets/css/mobile.css">
+
+  <style>
+    /* ── Spinner ── */
+    .nexus-spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+
+    .btn-spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: inline-block;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ── App loading screen ── */
+    #app-loader {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      z-index: 9999;
+      transition: opacity .4s ease;
+    }
+
+    #app-loader.hide {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loader-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .loader-logo-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #7c6fff, #a78bfa, #c9a84c);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 24px rgba(124, 111, 255, 0.5);
+    }
+
+    .loader-logo-name {
+      font-size: 1.8rem;
+      font-weight: 900;
+      letter-spacing: .08em;
+      background: linear-gradient(135deg, #fff 20%, #a78bfa 60%, #c9a84c);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .loader-sub {
+      font-size: .84rem;
+      color: var(--text3);
+      margin-top: -8px;
+    }
+
+    /* ── Theme toggle ── */
+    .theme-toggle {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text2);
+      transition: all .2s;
+    }
+
+    .theme-toggle:hover {
+      background: var(--surface3);
+      color: var(--text);
+    }
+
+    /* ── Topbar user ── */
+    .topbar-user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .8rem;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .user-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px;
+      min-width: 200px;
+      box-shadow: var(--shadow-lg);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-8px);
+      transition: all .2s;
+      z-index: 100;
+    }
+
+    .user-menu.open {
+      opacity: 1;
+      pointer-events: all;
+      transform: translateY(0);
+    }
+
+    .user-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: .84rem;
+      color: var(--text2);
+      cursor: pointer;
+      transition: var(--tr);
+    }
+
+    .user-menu-item:hover {
+      background: var(--surface2);
+      color: var(--text);
+    }
+
+    .user-menu-item.danger {
+      color: var(--red);
+    }
+
+    .user-menu-item.danger:hover {
+      background: var(--red-bg);
+    }
+
+    .user-menu-sep {
+      height: 1px;
+      background: var(--border);
+      margin: 6px 0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ══════════════════════════════════════════
+     APP LOADER
+══════════════════════════════════════════ -->
+  <div id="app-loader">
+    <div class="loader-logo">
+      <div class="loader-logo-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+        </svg>
+      </div>
+      <div class="loader-logo-name">NEXUS</div>
+    </div>
+    <div class="nexus-spinner"></div>
+    <div class="loader-sub">Chargement de votre espace...</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+     APP (masquée jusqu'au chargement)
+══════════════════════════════════════════ -->
+  <div class="app" id="app" style="display:none">
+
+    <!-- ── Overlay sidebar mobile ── -->
+    <div class="sidebar-overlay" id="sov" onclick="Nav.closeSidebar()"></div>
+
+    <!-- ══════════════════════════════════════════
+     SIDEBAR
+══════════════════════════════════════════ -->
+    <aside class="sidebar" id="sidebar">
+
+      <!-- Logo -->
+      <div class="sidebar-logo">
+        <div class="logo-row">
+          <div class="logo-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg>
+          </div>
+          <div>
+            <div class="logo-title">NEXUS</div>
+            <div class="logo-sub">Commerce Intelligence</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nav -->
+      <nav class="sidebar-nav">
+
+        <div class="nav-sec">Principal</div>
+        <div class="nav-item active" data-page="dashboard" onclick="Nav.go('dashboard',this)">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+            </svg></span>
+          Tableau de bord
+        </div>
+
+        <div class="nav-sec">Opérations</div>
+        <div class="nav-item" data-page="achats" onclick="Nav.go('achats',this)">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <path d="M16 10a4 4 0 01-8 0" />
+            </svg></span>
+          Mes Achats
+          <span class="nav-badge" id="b-achats">0</span>
+        </div>
+        <div class="nav-item" data-page="ventes" onclick="Nav.go('ventes',this)">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <line x1="12" y1="1" x2="12" y2="23" />
+              <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+            </svg></span>
+          Mes Ventes
+          <span class="nav-badge" id="b-ventes">0</span>
+        </div>
+        <div class="nav-item" data-page="clients" onclick="Nav.go('clients',this)">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 00-3-3.87" />
+              <path d="M16 3.13a4 4 0 010 7.75" />
+            </svg></span>
+          Clients
+          <span class="nav-badge" id="b-clients">0</span>
+        </div>
+        <div class="nav-item" data-page="livraisons" onclick="Nav.go('livraisons',this)">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <rect x="1" y="3" width="15" height="13" />
+              <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+              <circle cx="5.5" cy="18.5" r="2.5" />
+              <circle cx="18.5" cy="18.5" r="2.5" />
+            </svg></span>
+          Livraisons
+          <span class="nav-badge" id="b-livraisons">0</span>
+        </div>
+
+        <div class="nav-sec">Analyse</div>
+        <div class="nav-item" data-page="rentabilite" onclick="Nav.go('rentabilite',this)">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <line x1="18" y1="20" x2="18" y2="10" />
+              <line x1="12" y1="20" x2="12" y2="4" />
+              <line x1="6" y1="20" x2="6" y2="14" />
+            </svg></span>
+          Rentabilité
+        </div>
+        <div class="nav-item" data-page="produits" onclick="Nav.go('produits',this)">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <path
+                d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" />
+            </svg></span>
+          Produits
+        </div>
+        <div class="nav-item" data-page="revenus" onclick="Nav.go('revenus',this)">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+            </svg></span>
+          Revenus
+        </div>
+        <div class="nav-item" data-page="finances" onclick="Nav.go('finances',this)">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 6v6l4 2" />
+            </svg></span>
+          Finances
+        </div>
+
+        <div class="nav-sec">Gestion</div>
+        <div class="nav-item" data-page="projets" onclick="Nav.go('projets',this)">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg></span>
+          Projets
+          <span class="nav-badge" id="b-projets">0</span>
+        </div>
+        <div class="nav-item" data-page="taches" onclick="Nav.go('taches',this)">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <polyline points="9 11 12 14 22 4" />
+              <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
+            </svg></span>
+          Tâches
+          <span class="nav-badge" id="b-taches">0</span>
+        </div>
+
+        <div class="nav-sec">Exploration</div>
+        <div class="nav-item" data-page="idees" onclick="Nav.go('idees',this)">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <line x1="12" y1="2" x2="12" y2="6" />
+              <line x1="12" y1="18" x2="12" y2="22" />
+              <line x1="4.93" y1="4.93" x2="7.76" y2="7.76" />
+              <line x1="16.24" y1="16.24" x2="19.07" y2="19.07" />
+              <line x1="2" y1="12" x2="6" y2="12" />
+              <line x1="18" y1="12" x2="22" y2="12" />
+              <line x1="4.93" y1="19.07" x2="7.76" y2="16.24" />
+              <line x1="16.24" y1="7.76" x2="19.07" y2="4.93" />
+            </svg></span>
+          Idées Produits
+          <span class="nav-badge" id="b-idees">0</span>
+        </div>
+        <div class="nav-item" data-page="relances" onclick="Nav.go('relances',this)">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <path
+                d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8 19.79 19.79 0 01.22 1.18 2 2 0 012.18 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.16 6.16l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
+            </svg></span>
+          Relances
+          <span class="nav-badge" id="b-relances">0</span>
+        </div>
+        <div class="nav-item" data-page="marketing" onclick="Nav.go('marketing',this)">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg></span>
+          Marketing
+        </div>
+
+        <div class="nav-sec">Compte</div>
+        <div class="nav-item" data-page="compte" onclick="Nav.go('compte',this)">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg></span>
+          Mon Compte
+        </div>
+
+      </nav>
+
+      <!-- Footer sidebar -->
+      <div class="sidebar-footer">
+        <button class="sb-btn export" onclick="DB.exportBackup()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          Exporter JSON
+        </button>
+        <button class="sb-btn import" onclick="$('import-file-input').click()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          Importer JSON
+        </button>
+        <button class="sb-btn export-alt" onclick="DB.exportExcel()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+          </svg>
+          Exporter Excel (complet)
+        </button>
+        <input type="file" id="import-file-input" accept=".json" style="display:none"
+          onchange="handleImportFile(event)">
+      </div>
+
+    </aside>
+
+    <!-- ══════════════════════════════════════════
+     MAIN
+══════════════════════════════════════════ -->
+    <div class="main">
+
+      <!-- TOPBAR -->
+      <div class="topbar">
+        <div style="display:flex;align-items:center;gap:11px">
+          <button class="hamburger" onclick="Nav.openSidebar()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+          <div class="topbar-title" id="topTitle">Tableau de bord</div>
+        </div>
+        <div class="topbar-user">
+          <!-- Badge abonnement -->
+          <div id="sub-badge"></div>
+          <!-- Actions rapides -->
+          <button class="btn btn-primary btn-sm" onclick="Nav.go('achats')">+ Achat</button>
+          <button class="btn btn-success btn-sm" onclick="Nav.go('ventes')">+ Vente</button>
+          <!-- Thème -->
+          <button class="theme-toggle" onclick="Theme.toggle()" title="Changer le thème">
+            <svg id="theme-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+            </svg>
+          </button>
+          <!-- Avatar user -->
+          <div style="position:relative">
+            <div class="user-avatar" id="user-avatar" onclick="toggleUserMenu()">N</div>
+            <div class="user-menu" id="user-menu">
+              <div style="padding:10px 12px 8px;border-bottom:1px solid var(--border);margin-bottom:6px">
+                <div style="font-size:.84rem;font-weight:700" id="menu-user-name">—</div>
+                <div style="font-size:.72rem;color:var(--text3)" id="menu-user-email">—</div>
+              </div>
+              <div class="user-menu-item" onclick="Nav.go('compte')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+                Mon Compte
+              </div>
+              <div class="user-menu-sep"></div>
+              <div class="user-menu-item danger" onclick="handleLogout()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                Se déconnecter
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+       PAGE : DASHBOARD
+  ══════════════════════════════════════ -->
+      <div class="page active" id="page-dashboard">
+        <!-- Filtre produit -->
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+          <div
+            style="display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 14px;flex:1;min-width:200px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2">
+              <path
+                d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" />
+            </svg>
+            <select id="dash-product-filter" onchange="Pages.dashboard?.render?.()"
+              style="background:transparent;border:none;color:var(--text);font-size:.875rem;outline:none;width:100%;font-family:inherit;cursor:pointer">
+              <option value="">Tous les produits</option>
+            </select>
+          </div>
+          <div id="dash-filter-badge"
+            style="display:none;align-items:center;gap:8px;background:rgba(124,111,255,0.1);border:1px solid rgba(124,111,255,0.25);color:var(--accent2);font-size:.78rem;font-weight:600;padding:8px 14px;border-radius:10px">
+            <span id="dash-filter-name"></span>
+            <button onclick="clearDashFilter()"
+              style="background:none;border:none;color:var(--accent2);cursor:pointer;font-size:1rem;line-height:1;padding:0;margin-left:4px">×</button>
+          </div>
+        </div>
+
+        <div class="stats-grid" id="d-stats"></div>
+        <div id="dash-specific-stats"></div>
+
+        <div class="split-2col" style="margin-bottom:20px" id="dash-charts-row">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Revenus — 7 derniers jours</div>
+            </div>
+            <div class="chart-wrap"><canvas id="chart-week"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">CA par canal de vente</div>
+            </div>
+            <div class="chart-wrap"><canvas id="chart-channels"></canvas></div>
+          </div>
+        </div>
+
+        <div class="split-2col" style="margin-bottom:20px">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Top produits rentables</div>
+            </div>
+            <div id="d-top" style="padding:14px;display:flex;flex-direction:column;gap:8px"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Alertes & Notifications</div>
+            </div>
+            <div id="d-alerts" style="padding:14px"></div>
+          </div>
+        </div>
+
+        <div class="split-2col">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Suivi des projets</div>
+              <button class="btn btn-sm btn-secondary" onclick="Nav.go('projets')">Voir tout</button>
+            </div>
+            <div id="d-proj-track" style="padding:14px;display:flex;flex-direction:column;gap:8px"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Résumé global</div>
+            </div>
+            <div style="padding:16px">
+              <div id="d-sum" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+       PAGE : ACHATS
+  ══════════════════════════════════════ -->
+      <div class="page" id="page-achats">
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Enregistrer un Achat</div>
+              <button class="btn btn-sm btn-secondary" onclick="Pages.achats?.clearForm?.()">Effacer</button>
+            </div>
+            <div class="card-body">
+              <div class="form-grid">
+                <div class="sep">Produit</div>
+                <div class="form-group form-full">
+                  <label class="form-label">Nom du produit *</label>
+                  <input class="form-input" type="text" id="a-name" placeholder="Ex: Bracelet Ayat Al-Kursi">
+                </div>
+                <div class="form-group form-full">
+                  <label class="form-label">Boutique / Source</label>
+                  <input class="form-input" type="text" id="a-store" placeholder="Ex: AliExpress, Fournisseur...">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Quantité achetée *</label>
+                  <input class="form-input" type="number" id="a-qty" placeholder="0" min="0"
+                    oninput="Pages.achats?.updatePreview?.()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Coût total stock (FCFA)</label>
+                  <input class="form-input" type="number" id="a-stock" placeholder="0" min="0"
+                    oninput="Pages.achats?.updatePreview?.()">
+                </div>
+                <div class="sep">Logistique</div>
+                <div class="form-group">
+                  <label class="form-label">Type de fret</label>
+                  <select class="form-input" id="a-fret-type">
+                    <option value="Aérien">Aérien</option>
+                    <option value="Maritime">Maritime</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Coût fret (FCFA)</label>
+                  <input class="form-input" type="number" id="a-fret" placeholder="0" min="0"
+                    oninput="Pages.achats?.updatePreview?.()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Douane (FCFA)</label>
+                  <input class="form-input" type="number" id="a-customs" placeholder="0" min="0"
+                    oninput="Pages.achats?.updatePreview?.()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Emballage (FCFA)</label>
+                  <input class="form-input" type="number" id="a-packaging" placeholder="0" min="0"
+                    oninput="Pages.achats?.updatePreview?.()">
+                </div>
+              </div>
+              <div class="preview-box">
+                <div class="preview-box-label">Aperçu en temps réel</div>
+                <div class="preview-row">
+                  <div>
+                    <div class="prev-item-label">Investissement Total</div>
+                    <div class="prev-item-val" id="pa-invest" style="color:var(--accent2)">0 FCFA</div>
+                  </div>
+                  <div>
+                    <div class="prev-item-label">Coût par unité</div>
+                    <div class="prev-item-val" id="pa-unit">—</div>
+                  </div>
+                </div>
+              </div>
+              <button class="btn btn-primary" style="width:100%;margin-top:14px" id="btn-save-achat"
+                onclick="Pages.achats?.save?.()">
+                Enregistrer l'Achat
+              </button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Produits Achetés</div>
+              <span id="a-count" style="font-size:.75rem;color:var(--text3)">0 produit(s)</span>
+            </div>
+            <div class="table-toolbar">
+              <div class="search-wrap">
+                <span class="s-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg></span>
+                <input type="text" id="a-search" placeholder="Rechercher..." oninput="Pages.achats?.render?.()">
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Produit</th>
+                    <th>Boutique</th>
+                    <th>Qté</th>
+                    <th>Investissement</th>
+                    <th>Coût/u</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="a-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+       PAGE : VENTES
+  ══════════════════════════════════════ -->
+      <div class="page" id="page-ventes">
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Enregistrer une Vente</div>
+              <button class="btn btn-sm btn-secondary" onclick="Pages.ventes?.clearForm?.()">Effacer</button>
+            </div>
+            <div class="card-body">
+              <div class="form-grid">
+                <div class="sep">Produit</div>
+                <div class="form-group form-full">
+                  <label class="form-label">Produit *</label>
+                  <select class="form-input" id="v-product" onchange="Pages.ventes?.onProductChange?.()">
+                    <option value="">— Sélectionner —</option>
+                  </select>
+                </div>
+                <div class="form-full" id="v-product-info" style="display:none">
+                  <div
+                    style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;gap:14px;flex-wrap:wrap">
+                    <div>
+                      <div style="font-size:.67rem;color:var(--text3)">Investissement</div>
+                      <div style="font-weight:700;color:var(--accent2);font-size:.9rem" id="vpi-invest">—</div>
+                    </div>
+                    <div>
+                      <div style="font-size:.67rem;color:var(--text3)">Coût/unité</div>
+                      <div style="font-weight:700;font-size:.9rem" id="vpi-unit">—</div>
+                    </div>
+                    <div>
+                      <div style="font-size:.67rem;color:var(--text3)">Stock acheté</div>
+                      <div style="font-weight:700;font-size:.9rem" id="vpi-qty">—</div>
+                    </div>
+                    <div>
+                      <div style="font-size:.67rem;color:var(--text3)">Déjà vendu</div>
+                      <div style="font-weight:700;color:var(--green);font-size:.9rem" id="vpi-sold">—</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="sep">Client</div>
+                <div class="form-group form-full">
+                  <label class="form-label">Client (optionnel)</label>
+                  <select class="form-input" id="v-client">
+                    <option value="">— Client anonyme —</option>
+                  </select>
+                </div>
+                <div class="sep">Détails</div>
+                <div class="form-group">
+                  <label class="form-label">Prix unitaire (FCFA) *</label>
+                  <input class="form-input" type="number" id="v-price" placeholder="0" min="0"
+                    oninput="Pages.ventes?.updatePreview?.()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Quantité vendue *</label>
+                  <input class="form-input" type="number" id="v-qty" placeholder="1" min="0"
+                    oninput="Pages.ventes?.updatePreview?.()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Frais de livraison (FCFA)</label>
+                  <input class="form-input" type="number" id="v-shipping" placeholder="0" min="0"
+                    oninput="Pages.ventes?.updatePreview?.()">
+                </div>
+                <div class="sep">Frais Publicitaires</div>
+                <div class="form-group">
+                  <label class="form-label">Facebook Ads (FCFA)</label>
+                  <input class="form-input" type="number" id="v-fb" placeholder="0" min="0"
+                    oninput="Pages.ventes?.updatePreview?.()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">TikTok Ads (FCFA)</label>
+                  <input class="form-input" type="number" id="v-tiktok" placeholder="0" min="0"
+                    oninput="Pages.ventes?.updatePreview?.()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Autres pubs (FCFA)</label>
+                  <input class="form-input" type="number" id="v-ads" placeholder="0" min="0"
+                    oninput="Pages.ventes?.updatePreview?.()">
+                </div>
+                <div class="form-group form-full">
+                  <label class="form-label">Autres frais (FCFA)</label>
+                  <input class="form-input" type="number" id="v-misc" placeholder="0" min="0"
+                    oninput="Pages.ventes?.updatePreview?.()">
+                </div>
+                <div class="sep">Détails</div>
+                <div class="form-group">
+                  <label class="form-label">Date de vente</label>
+                  <input class="form-input" type="date" id="v-date">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Canal de vente</label>
+                  <select class="form-input" id="v-channel">
+                    <option value="WhatsApp">WhatsApp</option>
+                    <option value="Facebook">Facebook</option>
+                    <option value="TikTok">TikTok</option>
+                    <option value="Instagram">Instagram</option>
+                    <option value="Boutique">Boutique</option>
+                    <option value="Site web">Site web</option>
+                    <option value="Autre">Autre</option>
+                  </select>
+                </div>
+                <div class="form-group form-full">
+                  <label class="form-label">Note (optionnel)</label>
+                  <input class="form-input" type="text" id="v-note" placeholder="Détails...">
+                </div>
+              </div>
+              <div class="preview-box">
+                <div class="preview-box-label">Aperçu de la vente</div>
+                <div class="preview-row">
+                  <div>
+                    <div class="prev-item-label">Chiffre d'Affaires</div>
+                    <div class="prev-item-val" id="pv-ca" style="color:var(--blue)">0 FCFA</div>
+                  </div>
+                  <div>
+                    <div class="prev-item-label">Profit estimé</div>
+                    <div class="prev-item-val" id="pv-profit">—</div>
+                  </div>
+                </div>
+              </div>
+              <button class="btn btn-primary" style="width:100%;margin-top:14px" id="btn-save-vente"
+                onclick="Pages.ventes?.save?.()">
+                Enregistrer la Vente
+              </button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Historique des Ventes</div>
+              <span id="v-count" style="font-size:.75rem;color:var(--text3)">0 vente(s)</span>
+            </div>
+            <div class="table-toolbar">
+              <div class="search-wrap">
+                <span class="s-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg></span>
+                <input type="text" id="v-search" placeholder="Rechercher..." oninput="Pages.ventes?.render?.()">
+              </div>
+              <select class="form-input" id="v-filter" style="width:auto;padding:7px 10px;font-size:.82rem"
+                onchange="Pages.ventes?.render?.()">
+                <option value="">Tous les produits</option>
+              </select>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Produit</th>
+                    <th>Client</th>
+                    <th>Prix/u</th>
+                    <th>Qté</th>
+                    <th>CA</th>
+                    <th>Livraison</th>
+                    <th>Canal</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="v-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+       PAGE : CLIENTS
+  ══════════════════════════════════════ -->
+      <div class="page" id="page-clients">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <div>
+            <h2 style="font-size:1.2rem;font-weight:800;margin-bottom:3px">Clients</h2>
+            <p style="font-size:.8rem;color:var(--text3)" id="clients-count-lbl">0 client(s)</p>
+          </div>
+          <button class="btn btn-primary" onclick="Pages.clients?.openModal?.()">+ Nouveau Client</button>
+        </div>
+        <div class="stats-grid" id="clients-stats" style="margin-bottom:22px"></div>
+        <div class="table-toolbar"
+          style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px">
+          <div class="search-wrap">
+            <span class="s-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg></span>
+            <input type="text" id="clients-search" placeholder="Rechercher un client..."
+              oninput="Pages.clients?.render?.()">
+          </div>
+        </div>
+        <div class="client-grid" id="clients-grid"></div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+       PAGE : LIVRAISONS
+  ══════════════════════════════════════ -->
+      <div class="page" id="page-livraisons">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <div>
+            <h2 style="font-size:1.2rem;font-weight:800;margin-bottom:3px">Livraisons</h2>
+            <p style="font-size:.8rem;color:var(--text3)" id="liv-count-lbl">0 livraison(s)</p>
+          </div>
+          <button class="btn btn-primary" onclick="Pages.livraisons?.openModal?.()">+ Nouvelle Livraison</button>
+        </div>
+        <div class="delivery-pipeline" id="liv-pipeline"></div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Toutes les livraisons</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Client</th>
+                  <th>Produit</th>
+                  <th>Qté</th>
+                  <th>Montant</th>
+                  <th>Statut</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="liv-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+       PAGE : RENTABILITÉ
+  ══════════════════════════════════════ -->
+      <div class="page" id="page-rentabilite">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Analyse de Rentabilité par Produit</div>
+            <div style="display:flex;gap:7px">
+              <button class="btn btn-sm btn-primary" id="rs-profit"
+                onclick="Pages.rentabilite?.sortBy?.('profit')">Profit</button>
+              <button class="btn btn-sm btn-secondary" id="rs-roi"
+                onclick="Pages.rentabilite?.sortBy?.('roi')">ROI</button>
+              <button class="btn btn-sm btn-secondary" id="rs-ca"
+                onclick="Pages.rentabilite?.sortBy?.('ca')">CA</button>
+            </div>
+          </div>
+          <div class="table-toolbar">
+            <div class="search-wrap">
+              <span class="s-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg></span>
+              <input type="text" id="r-search" placeholder="Rechercher..." oninput="Pages.rentabilite?.render?.()">
+            </div>
+            <span id="r-count" style="font-size:.75rem;color:var(--text3);margin-left:auto"></span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Produit</th>
+                  <th>Boutique</th>
+                  <th>Investissement</th>
+                  <th>CA</th>
+                  <th>Coût/u</th>
+                  <th>Profit</th>
+                  <th>Marge</th>
+                  <th>ROI</th>
+                  <th>Ventes</th>
+                  <th>Stock</th>
+                  <th>Statut</th>
+                </tr>
+              </thead>
+              <tbody id="r-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card" style="margin-top:20px">
+          <div class="card-header">
+            <div class="card-title">Profit par Produit</div>
+          </div>
+          <div class="chart-wrap"><canvas id="chart-profit-bar"></canvas></div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+       PAGE : PRODUITS
+  ══════════════════════════════════════ -->
+      <div class="page" id="page-produits">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Inventaire Produits</div>
+            <span id="prod-count" style="font-size:.75rem;color:var(--text3)">0 produit(s)</span>
+          </div>
+          <div class="table-toolbar">
+            <div class="search-wrap">
+              <span class="s-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg></span>
+              <input type="text" id="prod-search" placeholder="Rechercher..." oninput="Pages.produits?.render?.()">
+            </div>
+            <select class="form-input" id="prod-sort" style="width:auto;padding:7px 10px;font-size:.82rem"
+              onchange="Pages.produits?.render?.()">
+              <option value="name">Nom</option>
+              <option value="stock">Stock</option>
+              <option value="invest">Investissement</option>
+              <option value="profit">Profit</option>
+            </select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Produit</th>
+                  <th>Boutique</th>
+                  <th>Qté Achetée</th>
+                  <th>Qté Vendue</th>
+                  <th>Stock</th>
+                  <th>Coût/u</th>
+                  <th>Investissement</th>
+                  <th>CA</th>
+                  <th>Profit</th>
+                  <th>Statut</th>
+                </tr>
+              </thead>
+              <tbody id="prod-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+       PAGE : REVENUS
+  ══════════════════════════════════════ -->
+      <div class="page" id="page-revenus">
+        <div style="margin-bottom:22px">
+          <h2 style="font-size:1.2rem;font-weight:800;margin-bottom:3px">Analyse des Revenus</h2>
+          <p style="font-size:.8rem;color:var(--text3)">Suivi de vos gains sur tous vos produits</p>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:24px"
+          id="rev-kpis"></div>
+        <div class="split-2col" style="margin-bottom:24px">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Revenus mensuels</div>
+            </div>
+            <div class="chart-wrap"><canvas id="chart-monthly"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Répartition par canal</div>
+            </div>
+            <div class="chart-wrap"><canvas id="chart-rev-channels"></canvas></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:18px">
+          <button class="task-filter-btn active" onclick="Pages.revenus?.switchTab?.(this,'week')">Semaine</button>
+          <button class="task-filter-btn" onclick="Pages.revenus?.switchTab?.(this,'month')">Mois</button>
+          <button class="task-filter-btn" onclick="Pages.revenus?.switchTab?.(this,'year')">Année</button>
+          <button class="task-filter-btn" onclick="Pages.revenus?.switchTab?.(this,'all')">Tout</button>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title" id="rev-table-title">Ventes de la semaine</div>
+            <span id="rev-table-count" style="font-size:.75rem;color:var(--text3)"></span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Produit</th>
+                  <th>Client</th>
+                  <th>Prix/u</th>
+                  <th>Qté</th>
+                  <th>CA</th>
+                  <th>Profit</th>
+                  <th>Canal</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody id="rev-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+       PAGE : FINANCES
+  ══════════════════════════════════════ -->
+      <div class="page" id="page-finances">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <div>
+            <h2 style="font-size:1.2rem;font-weight:800;margin-bottom:3px">Finances</h2>
+            <p style="font-size:.8rem;color:var(--text3)">Dépenses fixes, seuil de rentabilité, projections</p>
+          </div>
+          <button class="btn btn-primary" onclick="Pages.finances?.openModal?.()">+ Dépense fixe</button>
+        </div>
+        <div class="fin-grid" id="fin-kpis"></div>
+        <div class="split-2col">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Dépenses fixes mensuelles</div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Nom</th>
+                    <th>Montant</th>
+                    <th>Catégorie</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="depenses-tbody"></tbody>
+              </table>
+            </div>
+            <div
+              style="padding:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:.82rem;color:var(--text2)">Total mensuel</span>
+              <span id="depenses-total" style="font-weight:700;color:var(--red)">0 FCFA</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Seuil de rentabilité</div>
+            </div>
+            <div class="chart-wrap"><canvas id="chart-breakeven"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+       PAGE : PROJETS
+  ══════════════════════════════════════ -->
+      <div class="page" id="page-projets">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <div>
+            <h2 style="font-size:1.2rem;font-weight:800;margin-bottom:3px">Projets</h2>
+            <p style="font-size:.8rem;color:var(--text3)" id="proj-count-lbl">0 projet(s)</p>
+          </div>
+          <button class="btn btn-primary" onclick="Pages.projets?.openModal?.()">+ Nouveau Projet</button>
+        </div>
+        <div style="display:flex;gap:7px;margin-bottom:18px;flex-wrap:wrap" id="proj-status-filters">
+          <button class="task-filter-btn active" onclick="Pages.projets?.filter?.(this,'')">Tous</button>
+          <button class="task-filter-btn" onclick="Pages.projets?.filter?.(this,'prep')">En préparation</button>
+          <button class="task-filter-btn" onclick="Pages.projets?.filter?.(this,'cours')">En cours</button>
+          <button class="task-filter-btn" onclick="Pages.projets?.filter?.(this,'term')">Terminé</button>
+          <button class="task-filter-btn" onclick="Pages.projets?.filter?.(this,'susp')">Suspendu</button>
+        </div>
+        <div class="proj-grid" id="proj-grid"></div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+       PAGE : TÂCHES
+  ══════════════════════════════════════ -->
+      <div class="page" id="page-taches">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <div>
+            <h2 style="font-size:1.2rem;font-weight:800;margin-bottom:3px">Tâches</h2>
+            <p style="font-size:.8rem;color:var(--text3)" id="task-count-lbl">0 tâche(s)</p>
+          </div>
+          <button class="btn btn-primary" onclick="Pages.taches?.openModal?.()">+ Nouvelle Tâche</button>
+        </div>
+        <div class="card">
+          <div class="task-filters">
+            <button class="task-filter-btn active" onclick="Pages.taches?.filter?.(this,'')">Toutes</button>
+            <button class="task-filter-btn" onclick="Pages.taches?.filter?.(this,'todo')">À faire</button>
+            <button class="task-filter-btn" onclick="Pages.taches?.filter?.(this,'doing')">En cours</button>
+            <button class="task-filter-btn" onclick="Pages.taches?.filter?.(this,'done')">Terminées</button>
+            <button class="task-filter-btn" onclick="Pages.taches?.filter?.(this,'critique')">Critiques</button>
+          </div>
+          <div id="task-list-wrap"></div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+       PAGE : IDÉES
+  ══════════════════════════════════════ -->
+      <div class="page" id="page-idees">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <div>
+            <h2 style="font-size:1.2rem;font-weight:800;margin-bottom:3px">Idées Produits</h2>
+            <p style="font-size:.8rem;color:var(--text3)" id="idees-count-lbl">0 idée(s)</p>
+          </div>
+          <button class="btn btn-primary" onclick="Pages.idees?.openModal?.()">+ Nouvelle Idée</button>
+        </div>
+        <div class="stats-grid" id="idees-stats" style="margin-bottom:22px"></div>
+        <div style="display:flex;gap:7px;margin-bottom:18px;flex-wrap:wrap;align-items:center">
+          <button class="task-filter-btn active" onclick="Pages.idees?.filter?.(this,'')">Toutes</button>
+          <button class="task-filter-btn" onclick="Pages.idees?.filter?.(this,'idea')">Idées</button>
+          <button class="task-filter-btn" onclick="Pages.idees?.filter?.(this,'research')">En recherche</button>
+          <button class="task-filter-btn" onclick="Pages.idees?.filter?.(this,'validated')">Validées</button>
+          <button class="task-filter-btn" onclick="Pages.idees?.filter?.(this,'rejected')">Écartées</button>
+          <div class="search-wrap" style="flex:1;min-width:160px;margin-left:8px">
+            <span class="s-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg></span>
+            <input type="text" id="ideas-search" placeholder="Rechercher..." oninput="Pages.idees?.render?.()">
+          </div>
+        </div>
+        <div class="idea-grid" id="ideas-grid"></div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+       PAGE : RELANCES
+  ══════════════════════════════════════ -->
+      <div class="page" id="page-relances">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+          <div>
+            <h2 style="font-size:1.2rem;font-weight:800;margin-bottom:3px">Relances</h2>
+            <p style="font-size:.8rem;color:var(--text3)">Relancez vos clients directement via WhatsApp</p>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:24px;border-bottom:1px solid var(--border);padding-bottom:16px">
+          <button class="relance-tab active" onclick="Pages.relances?.switchTab?.(this,'remboursement')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="1" x2="12" y2="23" />
+              <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+            </svg>
+            Remboursement
+          </button>
+          <button class="relance-tab" onclick="Pages.relances?.switchTab?.(this,'recommande')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+            </svg>
+            Clients abonnés
+          </button>
+          <button class="relance-tab" onclick="Pages.relances?.switchTab?.(this,'offres')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            Nouvelles offres
+          </button>
+        </div>
+        <div id="relance-panels"></div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+       PAGE : MARKETING
+  ══════════════════════════════════════ -->
+      <div class="page" id="page-marketing">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+          <div>
+            <h2 style="font-size:1.2rem;font-weight:800;margin-bottom:3px">Marketing</h2>
+            <p style="font-size:.8rem;color:var(--text3)">Positionnement · Offre · Angles · Créatifs</p>
+          </div>
+          <select class="form-input" id="mkt-global-product" onchange="Pages.marketing?.onProductChange?.()"
+            style="width:auto;padding:8px 14px;font-size:.84rem">
+            <option value="">— Sélectionner un produit —</option>
+          </select>
+        </div>
+        <div
+          style="display:flex;gap:8px;margin-bottom:24px;border-bottom:1px solid var(--border);padding-bottom:0;overflow-x:auto">
+          <button class="mkt-tab active" onclick="Pages.marketing?.switchTab?.(this,'positionnement')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            Positionnement
+          </button>
+          <button class="mkt-tab" onclick="Pages.marketing?.switchTab?.(this,'offre')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
+              <line x1="7" y1="7" x2="7.01" y2="7" />
+            </svg>
+            Offre
+          </button>
+          <button class="mkt-tab" onclick="Pages.marketing?.switchTab?.(this,'angles')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 2 7 12 12 22 7 12 2" />
+              <polyline points="2 17 12 22 22 17" />
+            </svg>
+            Angles
+          </button>
+          <button class="mkt-tab" onclick="Pages.marketing?.switchTab?.(this,'creatifs')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+            </svg>
+            Créatifs
+          </button>
+        </div>
+        <div id="marketing-panels"></div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+       PAGE : MON COMPTE
+  ══════════════════════════════════════ -->
+      <div class="page" id="page-compte">
+        <div style="max-width:700px">
+          <h2 style="font-size:1.2rem;font-weight:800;margin-bottom:24px">Mon Compte</h2>
+
+          <!-- Abonnement -->
+          <div class="card" style="margin-bottom:20px">
+            <div class="card-header">
+              <div class="card-title">Abonnement</div>
+            </div>
+            <div class="card-body" id="compte-sub-info">
+              <div class="nexus-spinner" style="margin:20px auto"></div>
+            </div>
+          </div>
+
+          <!-- Profil -->
+          <div class="card" style="margin-bottom:20px">
+            <div class="card-header">
+              <div class="card-title">Profil</div>
+            </div>
+            <div class="card-body">
+              <div class="form-group" style="margin-bottom:16px">
+                <label class="form-label">Email</label>
+                <input class="form-input" type="email" id="compte-email" disabled style="opacity:.6">
+              </div>
+              <div class="form-group" style="margin-bottom:16px">
+                <label class="form-label">Nom complet</label>
+                <input class="form-input" type="text" id="compte-name" placeholder="Votre nom">
+              </div>
+              <button class="btn btn-primary" onclick="Pages.compte?.saveProfile?.()">Sauvegarder</button>
+            </div>
+          </div>
+
+          <!-- Mot de passe -->
+          <div class="card" style="margin-bottom:20px">
+            <div class="card-header">
+              <div class="card-title">Changer le mot de passe</div>
+            </div>
+            <div class="card-body">
+              <div class="form-group" style="margin-bottom:16px">
+                <label class="form-label">Nouveau mot de passe</label>
+                <input class="form-input" type="password" id="compte-pwd" placeholder="Minimum 8 caractères">
+              </div>
+              <div class="form-group" style="margin-bottom:16px">
+                <label class="form-label">Confirmer le mot de passe</label>
+                <input class="form-input" type="password" id="compte-pwd2" placeholder="Répéter le mot de passe">
+              </div>
+              <button class="btn btn-primary" onclick="Pages.compte?.changePassword?.()">Mettre à jour</button>
+            </div>
+          </div>
+
+          <!-- Danger zone -->
+          <div class="card" style="border-color:var(--red-b)">
+            <div class="card-header">
+              <div class="card-title" style="color:var(--red)">Zone Danger</div>
+            </div>
+            <div class="card-body">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:20px">
+                <div>
+                  <div style="font-size:.875rem;font-weight:600;margin-bottom:4px">Réinitialiser toutes les données
+                  </div>
+                  <div style="font-size:.78rem;color:var(--text3)">Supprime définitivement tous vos achats, ventes,
+                    clients et données.</div>
+                </div>
+                <button class="btn btn-danger" onclick="Pages.compte?.confirmReset?.()">Réinitialiser</button>
+              </div>
+              <div
+                style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:20px">
+                <div>
+                  <div style="font-size:.875rem;font-weight:600;margin-bottom:4px">Se déconnecter</div>
+                  <div style="font-size:.78rem;color:var(--text3)">Fermer votre session sur cet appareil.</div>
+                </div>
+                <button class="btn btn-secondary" onclick="handleLogout()">Déconnexion</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /main -->
+  </div><!-- /app -->
+
+  <!-- ══════════════════════════════════════════
+     MODAUX
+══════════════════════════════════════════ -->
+
+  <!-- Modal générique édition -->
+  <div class="modal-overlay" id="editModal" onclick="Modal.onOverlayClick(event,'editModal')">
+    <div class="modal">
+      <div class="modal-hdr">
+        <div class="modal-title" id="editModalTitle">Modifier</div>
+        <button class="modal-cls" onclick="Modal.close('editModal')">✕</button>
+      </div>
+      <div class="modal-bdy" id="editBody"></div>
+    </div>
+  </div>
+
+  <!-- Modal Client -->
+  <div class="modal-overlay" id="clientModal" onclick="Modal.onOverlayClick(event,'clientModal')">
+    <div class="modal">
+      <div class="modal-hdr">
+        <div class="modal-title" id="client-modal-title">Nouveau Client</div>
+        <button class="modal-cls" onclick="Modal.close('clientModal')">✕</button>
+      </div>
+      <div class="modal-bdy">
+        <div class="form-grid">
+          <div class="form-group form-full">
+            <label class="form-label">Nom complet *</label>
+            <input class="form-input" type="text" id="cm-name" placeholder="Ex: Aminata Koné">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Téléphone *</label>
+            <input class="form-input" type="tel" id="cm-phone" placeholder="+223 XX XX XX XX">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ville</label>
+            <input class="form-input" type="text" id="cm-city" placeholder="Ex: Bamako">
+          </div>
+          <div class="form-group form-full">
+            <label class="form-label">Adresse</label>
+            <input class="form-input" type="text" id="cm-address" placeholder="Quartier, commune...">
+          </div>
+          <div class="form-group form-full">
+            <label class="form-label">Notes</label>
+            <textarea class="form-input" id="cm-notes" rows="2" placeholder="Notes..."
+              style="resize:vertical;font-family:inherit"></textarea>
+          </div>
+        </div>
+        <div style="display:flex;gap:9px;margin-top:18px">
+          <button class="btn btn-secondary" style="flex:1" onclick="Modal.close('clientModal')">Annuler</button>
+          <button class="btn btn-primary" style="flex:1" id="btn-save-client"
+            onclick="Pages.clients?.save?.()">Sauvegarder</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Livraison -->
+  <div class="modal-overlay" id="livModal" onclick="Modal.onOverlayClick(event,'livModal')">
+    <div class="modal">
+      <div class="modal-hdr">
+        <div class="modal-title" id="liv-modal-title">Nouvelle Livraison</div>
+        <button class="modal-cls" onclick="Modal.close('livModal')">✕</button>
+      </div>
+      <div class="modal-bdy">
+        <div class="form-grid">
+          <div class="form-group form-full">
+            <label class="form-label">Client *</label>
+            <select class="form-input" id="lm-client"></select>
+          </div>
+          <div class="form-group form-full">
+            <label class="form-label">Produit *</label>
+            <select class="form-input" id="lm-product"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Quantité</label>
+            <input class="form-input" type="number" id="lm-qty" value="1" min="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Montant (FCFA)</label>
+            <input class="form-input" type="number" id="lm-amount" placeholder="0" min="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Statut</label>
+            <select class="form-input" id="lm-status">
+              <option value="pending">En attente</option>
+              <option value="confirmed">Confirmé</option>
+              <option value="shipped">Expédié</option>
+              <option value="delivered">Livré</option>
+              <option value="returned">Retour</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input class="form-input" type="date" id="lm-date">
+          </div>
+          <div class="form-group form-full">
+            <label class="form-label">Adresse de livraison</label>
+            <input class="form-input" type="text" id="lm-address" placeholder="Quartier, point de repère...">
+          </div>
+          <div class="form-group form-full">
+            <label class="form-label">Notes</label>
+            <textarea class="form-input" id="lm-notes" rows="2" style="resize:vertical;font-family:inherit"></textarea>
+          </div>
+        </div>
+        <div style="display:flex;gap:9px;margin-top:18px">
+          <button class="btn btn-secondary" style="flex:1" onclick="Modal.close('livModal')">Annuler</button>
+          <button class="btn btn-primary" style="flex:1" id="btn-save-liv"
+            onclick="Pages.livraisons?.save?.()">Sauvegarder</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Dépense -->
+  <div class="modal-overlay" id="depenseModal" onclick="Modal.onOverlayClick(event,'depenseModal')">
+    <div class="modal">
+      <div class="modal-hdr">
+        <div class="modal-title" id="dep-modal-title">Nouvelle Dépense Fixe</div>
+        <button class="modal-cls" onclick="Modal.close('depenseModal')">✕</button>
+      </div>
+      <div class="modal-bdy">
+        <div class="form-grid">
+          <div class="form-group form-full">
+            <label class="form-label">Nom de la dépense *</label>
+            <input class="form-input" type="text" id="dm-name" placeholder="Ex: Abonnement Meta Ads...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Montant mensuel (FCFA) *</label>
+            <input class="form-input" type="number" id="dm-amount" placeholder="0" min="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Catégorie</label>
+            <select class="form-input" id="dm-category">
+              <option value="Marketing">Marketing</option>
+              <option value="Logistique">Logistique</option>
+              <option value="Outils">Outils & Abonnements</option>
+              <option value="Personnel">Personnel</option>
+              <option value="Bureautique">Bureautique</option>
+              <option value="Autre">Autre</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:9px;margin-top:18px">
+          <button class="btn btn-secondary" style="flex:1" onclick="Modal.close('depenseModal')">Annuler</button>
+          <button class="btn btn-primary" style="flex:1" id="btn-save-dep"
+            onclick="Pages.finances?.save?.()">Sauvegarder</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Projet -->
+  <div class="modal-overlay" id="projectModal" onclick="Modal.onOverlayClick(event,'projectModal')">
+    <div class="modal">
+      <div class="modal-hdr">
+        <div class="modal-title" id="proj-modal-title">Nouveau Projet</div>
+        <button class="modal-cls" onclick="Modal.close('projectModal')">✕</button>
+      </div>
+      <div class="modal-bdy">
+        <div class="form-grid">
+          <div class="form-group form-full">
+            <label class="form-label">Nom du projet *</label>
+            <input class="form-input" type="text" id="pm-name" placeholder="Ex: Campagne Bracelet Été 2026">
+          </div>
+          <div class="form-group form-full">
+            <label class="form-label">Description</label>
+            <input class="form-input" type="text" id="pm-desc" placeholder="Description courte...">
+          </div>
+          <div class="form-group form-full">
+            <label class="form-label">Produit associé</label>
+            <select class="form-input" id="pm-product"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Quantité cible</label>
+            <input class="form-input" type="number" id="pm-target" placeholder="0" min="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Statut</label>
+            <select class="form-input" id="pm-status">
+              <option value="prep">En préparation</option>
+              <option value="cours">En cours</option>
+              <option value="term">Terminé</option>
+              <option value="susp">Suspendu</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date de début</label>
+            <input class="form-input" type="date" id="pm-start">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date de fin</label>
+            <input class="form-input" type="date" id="pm-end">
+          </div>
+        </div>
+        <div style="display:flex;gap:9px;margin-top:18px">
+          <button class="btn btn-secondary" style="flex:1" onclick="Modal.close('projectModal')">Annuler</button>
+          <button class="btn btn-primary" style="flex:1" id="btn-save-proj"
+            onclick="Pages.projets?.save?.()">Sauvegarder</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Tâche -->
+  <div class="modal-overlay" id="taskModal" onclick="Modal.onOverlayClick(event,'taskModal')">
+    <div class="modal">
+      <div class="modal-hdr">
+        <div class="modal-title" id="task-modal-title">Nouvelle Tâche</div>
+        <button class="modal-cls" onclick="Modal.close('taskModal')">✕</button>
+      </div>
+      <div class="modal-bdy">
+        <div class="form-grid">
+          <div class="form-group form-full">
+            <label class="form-label">Titre *</label>
+            <input class="form-input" type="text" id="tm-title" placeholder="Ex: Contacter fournisseur...">
+          </div>
+          <div class="form-group form-full">
+            <label class="form-label">Description</label>
+            <input class="form-input" type="text" id="tm-desc" placeholder="Détails...">
+          </div>
+          <div class="form-group form-full">
+            <label class="form-label">Projet associé</label>
+            <select class="form-input" id="tm-project"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Priorité</label>
+            <select class="form-input" id="tm-priority">
+              <option value="faible">Faible</option>
+              <option value="moyenne">Moyenne</option>
+              <option value="haute">Haute</option>
+              <option value="critique">Critique</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Statut</label>
+            <select class="form-input" id="tm-status">
+              <option value="todo">À faire</option>
+              <option value="doing">En cours</option>
+              <option value="done">Terminée</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:9px;margin-top:18px">
+          <button class="btn btn-secondary" style="flex:1" onclick="Modal.close('taskModal')">Annuler</button>
+          <button class="btn btn-primary" style="flex:1" id="btn-save-task"
+            onclick="Pages.taches?.save?.()">Sauvegarder</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Idée -->
+  <div class="modal-overlay" id="ideaModal" onclick="Modal.onOverlayClick(event,'ideaModal')">
+    <div class="modal" style="max-width:600px">
+      <div class="modal-hdr">
+        <div class="modal-title" id="idea-modal-title">Nouvelle Idée Produit</div>
+        <button class="modal-cls" onclick="Modal.close('ideaModal')">✕</button>
+      </div>
+      <div class="modal-bdy">
+        <div class="form-grid">
+          <div class="form-group form-full">
+            <label class="form-label">Nom du produit *</label>
+            <input class="form-input" type="text" id="im-name" placeholder="Ex: Montre connectée solaire">
+          </div>
+          <div class="form-group form-full">
+            <label class="form-label">Notes & Observations</label>
+            <textarea class="form-input" id="im-notes" rows="2" style="resize:vertical;font-family:inherit"
+              placeholder="Source d'inspiration, observations..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Catégorie</label>
+            <input class="form-input" type="text" id="im-category" placeholder="Ex: Tech, Mode, Beauté...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Statut</label>
+            <select class="form-input" id="im-status">
+              <option value="idea">Idée</option>
+              <option value="research">En recherche</option>
+              <option value="validated">Validé</option>
+              <option value="rejected">Écarté</option>
+            </select>
+          </div>
+          <div class="form-group form-full">
+            <label class="form-label">Lien de référence</label>
+            <input class="form-input" type="url" id="im-ref" placeholder="https://...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Coût fournisseur (FCFA)</label>
+            <input class="form-input" type="number" id="im-cost" placeholder="0" min="0"
+              oninput="Pages.idees?.updateMarginPreview?.()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Prix de vente estimé (FCFA)</label>
+            <input class="form-input" type="number" id="im-price" placeholder="0" min="0"
+              oninput="Pages.idees?.updateMarginPreview?.()">
+          </div>
+          <div class="form-full" id="im-margin-preview" style="display:none">
+            <div
+              style="background:var(--green-bg);border:1px solid var(--green-b);border-radius:9px;padding:10px 14px;display:flex;gap:18px;flex-wrap:wrap">
+              <div>
+                <div style="font-size:.67rem;color:var(--text3)">Marge brute</div>
+                <div style="font-weight:700;font-size:.92rem" id="im-margin-pct">—</div>
+              </div>
+              <div>
+                <div style="font-size:.67rem;color:var(--text3)">Profit/unité</div>
+                <div style="font-weight:700;font-size:.92rem" id="im-margin-val">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Scoring -->
+        <div
+          style="margin-top:18px;padding:16px;background:var(--surface2);border:1px solid var(--border);border-radius:12px">
+          <div
+            style="font-size:.69rem;color:var(--accent2);text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:15px">
+            Scoring Potentiel Produit</div>
+          <div class="score-criteria" id="score-criteria"></div>
+          <div class="score-total-box">
+            <div class="score-total-val" id="score-total-val" style="color:var(--text3)">0 / 25</div>
+            <div style="font-size:.74rem;margin-top:4px;font-weight:600;color:var(--text3)" id="score-total-badge">Aucun
+              score</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:9px;margin-top:18px">
+          <button class="btn btn-secondary" style="flex:1" onclick="Modal.close('ideaModal')">Annuler</button>
+          <button class="btn btn-primary" style="flex:1" id="btn-save-idea"
+            onclick="Pages.idees?.save?.()">Sauvegarder</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toasts -->
+  <div id="toasts"></div>
+
+  <!-- ══════════════════════════════════════════
+     SCRIPTS — Ordre critique
+══════════════════════════════════════════ -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/paytech.js"></script>
+  <script src="assets/js/db.js"></script>
+  <script src="assets/js/state.js"></script>
+  <script src="assets/js/engine.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/state-proxy.js"></script>
+  <script src="assets/js/crud.js"></script>
+  <script src="assets/js/charts.js"></script>
+  <script>window.Pages = {};</script>
+  <script src="assets/js/pages/dashboard.js"></script>
+  <script src="assets/js/pages/achats.js"></script>
+  <script src="assets/js/pages/ventes.js"></script>
+  <script src="assets/js/pages/clients.js"></script>
+  <script src="assets/js/pages/livraisons.js"></script>
+  <script src="assets/js/pages/rentabilite.js"></script>
+  <script src="assets/js/pages/produits.js"></script>
+  <script src="assets/js/pages/revenus.js"></script>
+  <script src="assets/js/pages/finances.js"></script>
+  <script src="assets/js/pages/projets.js"></script>
+  <script src="assets/js/pages/taches.js"></script>
+  <script src="assets/js/pages/idees.js"></script>
+  <script src="assets/js/pages/relances.js"></script>
+  <script src="assets/js/pages/marketing.js"></script>
+  <script src="assets/js/app.js"></script>
+
+  <script>
+    function clearDashFilter() {
+      const sel = $('dash-product-filter');
+      if (sel) sel.value = '';
+      $('dash-filter-badge').style.display = 'none';
+      Nav.refreshIfActive('dashboard');
+    }
+
+    function toggleUserMenu() {
+      $('user-menu')?.classList.toggle('open');
+    }
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#user-avatar') && !e.target.closest('#user-menu')) {
+        $('user-menu')?.classList.remove('open');
+      }
+    });
+
+    async function handleLogout() {
+      $('user-menu')?.classList.remove('open');
+      await Auth.logout();
+    }
+  </script>
+
+</body>
+
+</html>
