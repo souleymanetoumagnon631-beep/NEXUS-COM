@@ -1,0 +1,227 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── NOISE OVERLAY ─── */
+.noise-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.04;
+    mix-blend-mode: overlay;
+}
+
+.noise-overlay svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* ─── BASE ─── */
+@layer base {
+    html {
+        scroll-behavior: smooth;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+        @apply bg-[#07080f] text-white font-body;
+        overflow-x: hidden;
+    }
+
+    ::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.15);
+    }
+}
+
+/* ─── CUSTOM UTILITIES ─── */
+@layer components {
+    .glass-pill {
+        @apply backdrop-blur-xl bg-white/5 border border-white/10 rounded-full;
+    }
+
+    .glass-card {
+        @apply backdrop-blur-xl bg-white/[0.03] border border-white/[0.06] rounded-[2rem];
+    }
+
+    .glass-card-strong {
+        @apply backdrop-blur-xl bg-white/[0.05] border border-white/[0.08] rounded-[2rem];
+    }
+
+    .magnetic-btn {
+        transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .magnetic-btn:hover {
+        transform: scale(1.03);
+    }
+
+    .text-gradient-neon {
+        @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-neon to-emerald-300;
+    }
+
+    .text-gradient-violet {
+        @apply bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-brand-neon;
+    }
+
+    .glow-neon {
+        box-shadow: 0 0 40px rgba(0, 255, 163, 0.15), 0 0 80px rgba(0, 255, 163, 0.05);
+    }
+
+    .glow-violet {
+        box-shadow: 0 0 40px rgba(139, 92, 246, 0.15), 0 0 80px rgba(139, 92, 246, 0.05);
+    }
+
+    .hero-title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        line-height: 1.05;
+    }
+
+    .section-label {
+        @apply text-xs uppercase tracking-[0.2em] font-medium text-white/40;
+    }
+
+    .section-title {
+        @apply text-3xl md:text-4xl lg:text-5xl font-display font-bold leading-tight mt-3;
+    }
+
+    .section-sub {
+        @apply text-white/50 text-lg max-w-2xl mx-auto mt-4;
+    }
+}
+
+/* ─── ORBS ANIMATED ─── */
+.orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    z-index: 0;
+    will-change: transform;
+}
+
+.orb-1 {
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(0, 255, 163, 0.08), transparent 70%);
+    top: -200px;
+    right: -200px;
+    animation: orbFloat 12s ease-in-out infinite;
+}
+
+.orb-2 {
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.06), transparent 70%);
+    bottom: -150px;
+    left: -150px;
+    animation: orbFloat 10s ease-in-out infinite reverse;
+}
+
+.orb-3 {
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(0, 255, 163, 0.04), transparent 70%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: orbFloat 14s ease-in-out infinite 2s;
+}
+
+/* ─── HERO BACKGROUND IMAGE WRAPPER ─── */
+.hero-bg-img {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+}
+
+.hero-bg-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.hero-bg-img::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg,
+            rgba(7, 8, 15, 0.4) 0%,
+            rgba(7, 8, 15, 0.7) 40%,
+            rgba(7, 8, 15, 0.95) 70%,
+            rgba(7, 8, 15, 1) 100%);
+}
+
+/* ─── STICKY PROTOCOL ─── */
+.protocol-sticky {
+    position: sticky;
+    top: 120px;
+}
+
+.protocol-card {
+    transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* ─── FEATURE CARD MAGNETIC ─── */
+.feature-card {
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        box-shadow 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.feature-card:hover {
+    transform: translateY(-4px) scale(1.01);
+}
+
+/* ─── COUNTER ─── */
+.stat-value {
+    font-variant-numeric: tabular-nums;
+}
+
+/* ─── SCROLL REVEAL (fallback) ─── */
+.reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+        transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.reveal-delay-1 {
+    transition-delay: 0.1s;
+}
+
+.reveal-delay-2 {
+    transition-delay: 0.2s;
+}
+
+.reveal-delay-3 {
+    transition-delay: 0.3s;
+}
+
+.reveal-delay-4 {
+    transition-delay: 0.4s;
+}
+
+.reveal-delay-5 {
+    transition-delay: 0.5s;
+}
