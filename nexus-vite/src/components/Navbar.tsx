@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
+import { Logo } from './ui/Logo';
 
 const Navbar = () => {
     const navRef = useRef<HTMLElement>(null);
@@ -65,9 +66,7 @@ const Navbar = () => {
                             borderRadius: '10px',
                         }}
                     >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#140626" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                        </svg>
+                        <Logo variant="icon" size={16} theme="light" />
                     </div>
                     <span
                         className="text-base font-semibold tracking-tight"

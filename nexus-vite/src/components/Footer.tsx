@@ -1,3 +1,5 @@
+import { Logo } from './ui/Logo';
+
 const Footer = () => {
     return (
         <footer className="relative z-10 border-t border-white/5 pt-16 pb-8 px-4">
@@ -13,9 +15,7 @@ const Footer = () => {
                                     borderRadius: '8px',
                                 }}
                             >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#140626" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                                </svg>
+                                <Logo variant="icon" size={12} theme="light" />
                             </div>
                             <span
                                 className="text-sm font-semibold tracking-tight"
