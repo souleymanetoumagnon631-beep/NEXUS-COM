@@ -18,7 +18,7 @@ export interface LogotypeProps {
  * Icône seule — le symbole NEXUS
  */
 export const LogotypeIcon: React.FC<LogotypeProps> = ({
-    size = 24,
+    size = 64,
     className,
     style,
 }) => (
