@@ -15,7 +15,7 @@ const Footer = () => {
                                     borderRadius: '8px',
                                 }}
                             >
-                                <Logo variant="icon" size={12} theme="light" />
+                                <Logo variant="icon" size={40} theme="light" />
                             </div>
                             <span
                                 className="text-sm font-semibold tracking-tight"

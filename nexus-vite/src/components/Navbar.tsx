@@ -66,7 +66,7 @@ const Navbar = () => {
                             borderRadius: '10px',
                         }}
                     >
-                        <Logo variant="icon" size={16} theme="light" />
+                        <Logo variant="icon" size={40} theme="light" />
                     </div>
                     <span
                         className="text-base font-semibold tracking-tight"
