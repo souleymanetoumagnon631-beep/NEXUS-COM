@@ -27,18 +27,19 @@ export const LogotypeIcon: React.FC<LogotypeProps> = ({
     <svg
         width={size}
         height={size}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        viewBox="0 0 120 120"
+        xmlns="http://www.w3.org/2000/svg"
         className={className}
         style={style}
         aria-label="NEXUS"
         role="img"
     >
-        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+        <g fill="currentColor">
+            <polygon points="60,8 90,60 60,55" />
+            <polygon points="112,60 60,90 65,60" />
+            <polygon points="60,112 30,60 60,65" />
+            <polygon points="8,60 60,30 55,60" />
+        </g>
     </svg>
 );
 
