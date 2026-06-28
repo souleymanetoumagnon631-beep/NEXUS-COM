@@ -27,7 +27,7 @@ export const LogotypeIcon: React.FC<LogotypeProps> = ({
     <svg
         width={size}
         height={size}
-        viewBox="0 0 120 120"
+        viewBox="20 20 80 80"
         xmlns="http://www.w3.org/2000/svg"
         className={className}
         style={style}
