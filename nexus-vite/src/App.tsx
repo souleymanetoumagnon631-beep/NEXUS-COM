@@ -36,12 +36,11 @@ const LandingPage = () => {
 
         return () => {
             clearTimeout(timer);
-            ScrollTrigger.getAll().forEach((st) => st.kill());
         };
     }, []);
 
     return (
-        <div ref={mainRef} className="relative min-h-screen bg-charbon text-creme overflow-hidden">
+        <div ref={mainRef} className="relative min-h-screen bg-charbon text-creme overflow-x-hidden">
             {/* Ambient Orbs */}
             <div className="orb orb-1" />
             <div className="orb orb-2" />

@@ -126,7 +126,7 @@ const Protocol: React.FC = () => {
     );
 
     return (
-        <section ref={containerRef} className="relative h-auto md:h-screen bg-charbon-900 py-20 md:py-0 overflow-hidden">
+        <section ref={containerRef} className="relative h-auto md:h-screen bg-charbon-900 py-20 md:py-0 overflow-x-hidden">
             <div className="container mx-auto px-6 h-full relative">
                 
                 {/* Card 1 */}

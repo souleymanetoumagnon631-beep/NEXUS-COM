@@ -53,8 +53,8 @@ const Hero: React.FC = () => {
             {/* Background Image */}
             <div ref={imageRef} className="hero-bg-img">
                 <img 
-                    src="https://images.unsplash.com/photo-1511497584788-876760111969?q=80&w=2532&auto=format&fit=crop" 
-                    alt="Dark organic forest texture" 
+                    src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=2532&auto=format&fit=crop" 
+                    alt="Paiement mobile commerce" 
                 />
             </div>
 
