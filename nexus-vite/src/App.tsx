@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-// Components
+// Pages & Components
 import NoiseOverlay from './components/NoiseOverlay';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
@@ -12,6 +12,16 @@ import Philosophy from './components/Philosophy';
 import Protocol from './components/Protocol';
 import Pricing from './components/Pricing';
 import Footer from './components/Footer';
+
+// Auth & Protected
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import Onboarding from './pages/Onboarding';
+import ProtectedRoute from './components/ProtectedRoute';
+
+// Dashboard
+import DashboardLayout from './components/dashboard/DashboardLayout';
+import Transactions from './pages/dashboard/Transactions';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -79,10 +89,31 @@ function App() {
         <Router>
             <ScrollToTop />
             <Routes>
+                {/* Public Landing */}
                 <Route path="/" element={<LandingPage />} />
-                <Route path="/login" element={<PlaceholderPage title="Connexion" />} />
-                <Route path="/signup" element={<PlaceholderPage title="Inscription" />} />
-                <Route path="/dashboard" element={<PlaceholderPage title="Dashboard" />} />
+                
+                {/* Auth */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                
+                {/* Protected & App Flow */}
+                <Route path="/onboarding" element={
+                    <ProtectedRoute>
+                        <Onboarding />
+                    </ProtectedRoute>
+                } />
+                
+                <Route path="/dashboard" element={
+                    <ProtectedRoute>
+                        <DashboardLayout />
+                    </ProtectedRoute>
+                }>
+                    <Route index element={<Transactions />} />
+                    <Route path="finances" element={<PlaceholderPage title="Trésorerie" />} />
+                    <Route path="inventory" element={<PlaceholderPage title="Stock" />} />
+                    <Route path="score" element={<PlaceholderPage title="Score NEXUS" />} />
+                </Route>
+                
                 <Route path="/pricing" element={<PlaceholderPage title="Tarifs (Complet)" />} />
             </Routes>
         </Router>
