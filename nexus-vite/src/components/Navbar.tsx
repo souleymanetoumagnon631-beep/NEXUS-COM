@@ -1,119 +1,66 @@
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import gsap from 'gsap';
-import { Logo } from './ui/Logo';
 
-const Navbar = () => {
-    const navRef = useRef<HTMLElement>(null);
-    const badgeRef = useRef<HTMLButtonElement>(null);
-
-    useEffect(() => {
-        const ctx = gsap.context(() => {
-            if (badgeRef.current) {
-                gsap.from(badgeRef.current, {
-                    y: -20,
-                    opacity: 0,
-                    duration: 0.8,
-                    ease: 'power3.out',
-                });
-            }
-        });
-
-        return () => ctx.revert();
-    }, []);
+const Navbar: React.FC = () => {
+    const navRef = useRef<HTMLDivElement>(null);
+    const [scrolled, setScrolled] = useState(false);
 
     useEffect(() => {
         const handleScroll = () => {
-            if (!navRef.current) return;
-            const scrolled = window.scrollY > 60;
-            navRef.current.classList.toggle('scrolled', scrolled);
+            if (window.scrollY > 50) {
+                setScrolled(true);
+            } else {
+                setScrolled(false);
+            }
         };
-        window.addEventListener('scroll', handleScroll, { passive: true });
+
+        window.addEventListener('scroll', handleScroll);
+        
+        // Initial animation
+        gsap.fromTo(navRef.current, 
+            { y: -100, opacity: 0 }, 
+            { y: 0, opacity: 1, duration: 1, ease: 'power3.out', delay: 0.2 }
+        );
+
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    const goSignup = () => {
-        window.location.href = 'login.html?signup=true&plan=monthly';
-    };
-
     return (
-        <nav
-            ref={navRef}
-            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-32px)] max-w-5xl transition-all duration-500"
-            style={{
-                background: 'rgba(7,8,15,0.6)',
-                backdropFilter: 'blur(24px)',
-                WebkitBackdropFilter: 'blur(24px)',
-                border: '1px solid rgba(255,255,255,0.06)',
-                borderRadius: '100px',
-                padding: '10px 24px',
-            }}
+        <nav 
+            ref={navRef} 
+            className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 transition-all duration-500 w-[90%] max-w-5xl rounded-full px-6 py-4 flex items-center justify-between ${
+                scrolled ? 'glass-pill bg-charbon/60' : 'bg-transparent'
+            }`}
         >
-            <style>{`
-                nav.scrolled {
-                    background: rgba(7,8,15,0.85) !important;
-                    border-color: rgba(255,255,255,0.1) !important;
-                    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-                }
-            `}</style>
+            <div className="flex items-center gap-3 lift">
+                <Link to="/" className="flex items-center gap-3 group">
+                    <svg width="32" height="32" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" className="transform group-hover:rotate-90 transition-transform duration-500">
+                        <g fill="#2E4036">
+                            <polygon points="60,8 90,60 60,55" />
+                            <polygon points="112,60 60,90 65,60" />
+                            <polygon points="60,112 30,60 60,65" />
+                            <polygon points="8,60 60,30 55,60" />
+                        </g>
+                    </svg>
+                    <span className="font-display font-semibold tracking-[0.2em] text-xl text-creme">NEXUS</span>
+                </Link>
+            </div>
 
-            <div className="flex items-center justify-between">
-                {/* Logo */}
-                <a href="#" className="flex items-center gap-2.5 no-underline">
-                    <div
-                        className="w-8 h-8 flex items-center justify-center"
-                        style={{
-                            background: 'linear-gradient(135deg, #00FFA3, #00CC82)',
-                            borderRadius: '10px',
-                        }}
-                    >
-                        <Logo variant="icon" size={40} theme="light" />
-                    </div>
-                    <span
-                        className="text-base font-semibold tracking-tight"
-                        style={{ fontFamily: 'Space Grotesk, sans-serif' }}
-                    >
-                        NEXUS
-                    </span>
-                </a>
+            <div className="hidden md:flex items-center gap-8">
+                <a href="#features" className="text-creme/70 hover:text-creme text-sm font-medium tracking-wide lift">Fonctionnalités</a>
+                <a href="#protocol" className="text-creme/70 hover:text-creme text-sm font-medium tracking-wide lift">Protocole</a>
+                <a href="#pricing" className="text-creme/70 hover:text-creme text-sm font-medium tracking-wide lift">Tarifs</a>
+            </div>
 
-                {/* Desktop Nav Links */}
-                <div className="hidden md:flex items-center gap-8">
-                    {[
-                        { label: 'Accueil', href: '#hero' },
-                        { label: 'Fonctionnalités', href: '#features' },
-                        { label: 'Philosophie', href: '#philosophy' },
-                        { label: 'Protocole', href: '#protocol' },
-                        { label: 'Tarifs', href: '#pricing' },
-                    ].map((link) => (
-                        <a
-                            key={link.href}
-                            href={link.href}
-                            className="text-sm text-white/60 hover:text-white/90 transition-colors duration-300 no-underline"
-                        >
-                            {link.label}
-                        </a>
-                    ))}
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => (window.location.href = 'login.html')}
-                        className="hidden sm:inline-block text-sm text-white/70 hover:text-white transition-colors duration-300 bg-transparent border-none cursor-pointer"
-                    >
-                        Connexion
-                    </button>
-                    <button
-                        onClick={goSignup}
-                        className="magnetic-btn text-sm font-medium px-5 py-2.5 rounded-full border-none cursor-pointer text-[#140626]"
-                        style={{
-                            background: 'linear-gradient(135deg, #00FFA3, #00CC82)',
-                        }}
-                        ref={badgeRef}
-                    >
-                        Essai gratuit →
-                    </button>
-                </div>
+            <div className="flex items-center gap-4">
+                <Link to="/login" className="hidden sm:block text-creme/80 hover:text-creme text-sm font-medium lift">
+                    Connexion
+                </Link>
+                <Link to="/signup" className="magnetic-btn bg-argile text-creme px-6 py-2.5 text-sm">
+                    <span className="relative z-10">Essayer gratuitement</span>
+                    <div className="btn-bg bg-argile-600"></div>
+                </Link>
             </div>
         </nav>
     );

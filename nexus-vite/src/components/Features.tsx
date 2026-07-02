@@ -1,87 +1,224 @@
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { BarChart3, Users, Truck, TrendingUp, MessageSquare, Zap } from 'lucide-react';
+import { MessageSquare, Wallet, TrendingUp, CheckCircle2 } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const features = [
-    {
-        icon: BarChart3,
-        title: 'Mélangeur Diagnostique',
-        desc: 'Visualisez instantanément vos profits, marges et ROI par produit. Plus besoin de calculer manuellement — vos données financières se mélangent et s\'analysent en temps réel.',
-        gradient: 'from-violet-500/20 to-brand-neon/10',
-        border: 'rgba(139,92,246,0.15)',
-        iconBg: 'rgba(139,92,246,0.12)',
-        iconColor: '#a78bfa',
-    },
-    {
-        icon: MessageSquare,
-        title: 'Machine à Écrire Télémétrie',
-        desc: 'Suivez chaque client, son historique d\'achat, sa valeur totale et relancez-le directement via WhatsApp. Une machine de précision qui écrit l\'historique de vos relations commerciales.',
-        gradient: 'from-brand-neon/20 to-emerald-500/10',
-        border: 'rgba(0,255,163,0.15)',
-        iconBg: 'rgba(0,255,163,0.1)',
-        iconColor: '#00FFA3',
-    },
-    {
-        icon: Truck,
-        title: 'Planificateur Protocole Curseur',
-        desc: 'Pipeline visuel Kanban pour suivre chaque commande de la confirmation à la livraison finale. Votre curseur planifie le protocole exact — zéro commande en suspens.',
-        gradient: 'from-blue-500/20 to-cyan-500/10',
-        border: 'rgba(59,130,246,0.15)',
-        iconBg: 'rgba(59,130,246,0.1)',
-        iconColor: '#60a5fa',
-    },
-];
+// 1. Mélangeur Diagnostique (Card Cycling)
+const DiagnosticMixer: React.FC = () => {
+    const [cards, setCards] = useState([
+        { id: 1, text: "2 sacs de riz, 15000F, Fatou", status: "Capturé" },
+        { id: 2, text: "Paiement Wave 15000F reçu", status: "Rapproché" },
+        { id: 3, text: "Stock : Riz (-2 sacs)", status: "Mis à jour" }
+    ]);
 
-const moreFeatures = [
-    { icon: TrendingUp, title: 'Rentabilité en temps réel', desc: 'Visualisez vos profits, marges et ROI par produit.' },
-    { icon: Users, title: 'Gestion clients avancée', desc: 'Suivez chaque client et son historique d\'achat.' },
-    { icon: Truck, title: 'Suivi des livraisons', desc: 'Pipeline Kanban de la confirmation à la livraison.' },
-    { icon: BarChart3, title: 'Graphiques & Analyses', desc: 'Revenus hebdomadaires, mensuels, par canal.' },
-    { icon: MessageSquare, title: 'Relances WhatsApp', desc: 'Relancez vos clients en un clic.' },
-    { icon: Zap, title: 'Marketing structuré', desc: 'Positionnement, offre, angles publicitaires.' },
-];
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCards(prev => {
+                const newCards = [...prev];
+                const last = newCards.pop()!;
+                newCards.unshift(last);
+                return newCards;
+            });
+        }, 3000);
+        return () => clearInterval(interval);
+    }, []);
 
-const Features = () => {
-    const sectionRef = useRef<HTMLElement>(null);
-    const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
-    const titleRef = useRef<HTMLDivElement>(null);
+    return (
+        <div className="relative h-64 w-full flex items-center justify-center perspective-[1000px]">
+            {cards.map((card, index) => {
+                const isFront = index === 0;
+                const isMiddle = index === 1;
+                const translateY = isFront ? 0 : isMiddle ? -20 : -40;
+                const scale = isFront ? 1 : isMiddle ? 0.9 : 0.8;
+                const opacity = isFront ? 1 : isMiddle ? 0.6 : 0.3;
+                const zIndex = 3 - index;
+
+                return (
+                    <div 
+                        key={card.id}
+                        className="absolute w-full max-w-[280px] glass-card-strong p-5 border border-mousse-400/20"
+                        style={{
+                            transform: `translateY(${translateY}px) scale(${scale})`,
+                            opacity,
+                            zIndex,
+                            transition: 'all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                        }}
+                    >
+                        <div className="flex items-start gap-3">
+                            <div className="bg-mousse-700/50 p-2 rounded-xl">
+                                <MessageSquare className="w-5 h-5 text-argile" />
+                            </div>
+                            <div>
+                                <p className="font-mono text-sm text-creme/90 mb-2">"{card.text}"</p>
+                                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-md">
+                                    <CheckCircle2 className="w-3 h-3" />
+                                    {card.status}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+};
+
+// 2. Machine à Écrire Télémétrie
+const TelemetryTypewriter: React.FC = () => {
+    const textToType = `> INITIALISATION SYSTEME...
+> CONNEXION API MOBILE MONEY...
+> RAPPROCHEMENT TRX_9824... OK
+> SOLDE CONSOLIDE MIS A JOUR.
+> RELANCE CLIENT 'Mamadou' ENVOYEE.`;
+    
+    const [displayedText, setDisplayedText] = useState('');
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        let currentText = '';
+        let i = 0;
+        
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    const typingInterval = setInterval(() => {
+                        if (i < textToType.length) {
+                            currentText += textToType.charAt(i);
+                            setDisplayedText(currentText);
+                            i++;
+                        } else {
+                            clearInterval(typingInterval);
+                        }
+                    }, 50);
+                    observer.disconnect();
+                }
+            },
+            { threshold: 0.5 }
+        );
+
+        if (containerRef.current) {
+            observer.observe(containerRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, []);
+
+    return (
+        <div className="h-64 flex flex-col bg-charbon-900 rounded-2xl border border-white/5 overflow-hidden relative" ref={containerRef}>
+            <div className="flex items-center justify-between px-4 py-2 border-b border-white/5 bg-charbon-950">
+                <span className="text-[10px] font-mono text-creme/40 tracking-widest uppercase">Terminal</span>
+                <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-argile animate-pulse-dot"></span>
+                    <span className="text-[10px] font-mono text-argile tracking-widest uppercase">Flux en Direct</span>
+                </div>
+            </div>
+            <div className="p-4 flex-1 overflow-hidden">
+                <pre className="font-mono text-xs text-creme/70 whitespace-pre-wrap leading-relaxed">
+                    {displayedText}
+                    <span className="inline-block w-2 h-3 bg-argile ml-1 animate-typewriter-cursor align-middle"></span>
+                </pre>
+            </div>
+        </div>
+    );
+};
+
+// 3. Planificateur Protocole Curseur
+const ProtocolScheduler: React.FC = () => {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const cursorRef = useRef<SVGSVGElement>(null);
+    const cellRef = useRef<HTMLDivElement>(null);
+    const btnRef = useRef<HTMLDivElement>(null);
+    const [isActive, setIsActive] = useState(false);
 
     useEffect(() => {
         const ctx = gsap.context(() => {
-            // Title reveal
-            if (titleRef.current) {
-                gsap.from(titleRef.current.children, {
-                    y: 40,
-                    opacity: 0,
-                    duration: 0.8,
-                    stagger: 0.15,
-                    ease: 'power3.out',
-                    scrollTrigger: {
-                        trigger: titleRef.current,
-                        start: 'top 80%',
-                        toggleActions: 'play none none none',
-                    },
-                });
-            }
+            const tl = gsap.timeline({ 
+                repeat: -1, 
+                repeatDelay: 2,
+                scrollTrigger: {
+                    trigger: containerRef.current,
+                    start: "top 80%",
+                }
+            });
 
-            // Feature cards stagger
-            cardsRef.current.forEach((card, i) => {
-                if (!card) return;
-                gsap.from(card, {
-                    y: 60,
-                    opacity: 0,
-                    duration: 0.9,
-                    delay: i * 0.15,
-                    ease: 'power3.out',
-                    scrollTrigger: {
-                        trigger: card,
-                        start: 'top 85%',
-                        toggleActions: 'play none none none',
-                    },
-                });
+            tl.set(cursorRef.current, { x: 0, y: 0 })
+              .set(cellRef.current, { backgroundColor: 'transparent' })
+              .call(() => setIsActive(false))
+              
+              // Move to cell
+              .to(cursorRef.current, { 
+                  x: 120, y: 40, 
+                  duration: 1, 
+                  ease: "power2.inOut" 
+              })
+              // Click cell
+              .to(cursorRef.current, { scale: 0.8, duration: 0.1 })
+              .call(() => setIsActive(true))
+              .to(cellRef.current, { backgroundColor: 'rgba(204, 88, 51, 0.2)', duration: 0.2 })
+              .to(cursorRef.current, { scale: 1, duration: 0.1 })
+              
+              // Move to save button
+              .to(cursorRef.current, { 
+                  x: 180, y: 140, 
+                  duration: 0.8, 
+                  ease: "power2.inOut" 
+              })
+              // Click button
+              .to(cursorRef.current, { scale: 0.8, duration: 0.1 })
+              .to(btnRef.current, { scale: 0.95, duration: 0.1 })
+              .to(cursorRef.current, { scale: 1, duration: 0.1 })
+              .to(btnRef.current, { scale: 1, duration: 0.1 });
+              
+        }, containerRef);
+
+        return () => ctx.revert();
+    }, []);
+
+    return (
+        <div ref={containerRef} className="h-64 relative bg-charbon-900 rounded-2xl border border-white/5 p-6 overflow-hidden">
+            <div className="grid grid-cols-7 gap-2 mb-8">
+                {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((day, i) => (
+                    <div key={i} className="text-center font-mono text-xs text-creme/40">{day}</div>
+                ))}
+                {Array.from({ length: 14 }).map((_, i) => (
+                    <div 
+                        key={i} 
+                        ref={i === 9 ? cellRef : null}
+                        className={`aspect-square rounded-md border border-white/5 ${i === 9 && isActive ? 'border-argile/50' : ''}`}
+                    />
+                ))}
+            </div>
+            
+            <div className="flex justify-end mt-auto">
+                <div ref={btnRef} className="px-4 py-2 bg-mousse-700 text-xs font-mono text-creme rounded-lg border border-mousse-500/30">
+                    Sauvegarder
+                </div>
+            </div>
+
+            <svg ref={cursorRef} className="absolute top-8 left-8 w-6 h-6 text-creme drop-shadow-xl z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z" fill="white" />
+            </svg>
+        </div>
+    );
+};
+
+const Features: React.FC = () => {
+    const sectionRef = useRef<HTMLElement>(null);
+
+    useEffect(() => {
+        const ctx = gsap.context(() => {
+            gsap.from(".feature-block", {
+                y: 50,
+                opacity: 0,
+                duration: 1,
+                stagger: 0.2,
+                ease: "power3.out",
+                scrollTrigger: {
+                    trigger: sectionRef.current,
+                    start: "top 70%",
+                }
             });
         }, sectionRef);
 
@@ -89,80 +226,58 @@ const Features = () => {
     }, []);
 
     return (
-        <section ref={sectionRef} id="features" className="relative z-10 py-24 md:py-32 px-4">
-            <div className="max-w-6xl mx-auto">
-                {/* Section Header */}
-                <div ref={titleRef} className="text-center mb-16 md:mb-24">
-                    <span className="section-label">Pourquoi NEXUS</span>
-                    <h2 className="section-title">
-                        Tout ce dont votre <span className="text-gradient-neon">business</span> a besoin
-                    </h2>
+        <section id="features" ref={sectionRef} className="py-24 relative z-10 bg-charbon">
+            <div className="container mx-auto px-6">
+                <div className="text-center mb-20 feature-block">
+                    <span className="section-label block mb-4">Système Opérationnel</span>
+                    <h2 className="section-title">L'infrastructure de votre croissance</h2>
                     <p className="section-sub">
-                        Un seul outil pour remplacer les tableurs, les carnets et les applications éparpillées.
+                        Une suite d'outils conçue pour s'effacer derrière vos habitudes, transformant vos données invisibles en actifs financiers.
                     </p>
                 </div>
 
-                {/* 3 Main Feature Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-24">
-                    {features.map((feat, i) => {
-                        const Icon = feat.icon;
-                        return (
-                            <div
-                                key={feat.title}
-                                ref={(el) => { cardsRef.current[i] = el; }}
-                                className="feature-card glass-card-strong p-8 md:p-10 flex flex-col"
-                                style={{ borderColor: feat.border }}
-                            >
-                                <div
-                                    className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6"
-                                    style={{ background: feat.iconBg }}
-                                >
-                                    <Icon size={26} strokeWidth={1.5} color={feat.iconColor} />
-                                </div>
-                                <h3 className="text-xl font-display font-bold text-white mb-3">
-                                    {feat.title}
-                                </h3>
-                                <p className="text-sm text-white/50 leading-relaxed flex-1">
-                                    {feat.desc}
-                                </p>
-                                <div
-                                    className="mt-6 pt-6 border-t border-white/5 flex items-center gap-2 text-xs font-medium"
-                                    style={{ color: feat.iconColor }}
-                                >
-                                    <span>Explorer</span>
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                        <line x1="5" y1="12" x2="19" y2="12" />
-                                        <polyline points="12 5 19 12 12 19" />
-                                    </svg>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                <div className="grid lg:grid-cols-3 gap-8">
+                    {/* Feature 1 */}
+                    <div className="feature-block feature-card glass-card p-8 flex flex-col">
+                        <div className="w-12 h-12 rounded-2xl bg-mousse-800 flex items-center justify-center mb-8 border border-mousse-600/30">
+                            <MessageSquare className="w-6 h-6 text-creme" />
+                        </div>
+                        <h3 className="font-display text-2xl font-semibold text-creme mb-3">Zéro saisie, zéro effort</h3>
+                        <p className="text-creme/60 font-body mb-8">
+                            Continuez de gérer vos clients sur WhatsApp. Notre assistant capture automatiquement les ventes et met à jour votre stock.
+                        </p>
+                        <div className="mt-auto">
+                            <DiagnosticMixer />
+                        </div>
+                    </div>
 
-                {/* More Features Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {moreFeatures.map((feat, i) => {
-                        const Icon = feat.icon;
-                        return (
-                            <div
-                                key={feat.title}
-                                className="glass-card p-6 flex items-start gap-4 reveal"
-                                style={{ transitionDelay: `${0.1 + i * 0.05}s` }}
-                            >
-                                <div
-                                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                                    style={{ background: 'rgba(0,255,163,0.08)' }}
-                                >
-                                    <Icon size={18} strokeWidth={1.5} color="#00FFA3" />
-                                </div>
-                                <div>
-                                    <h4 className="text-sm font-semibold text-white mb-1">{feat.title}</h4>
-                                    <p className="text-xs text-white/40">{feat.desc}</p>
-                                </div>
-                            </div>
-                        );
-                    })}
+                    {/* Feature 2 */}
+                    <div className="feature-block feature-card glass-card p-8 flex flex-col">
+                        <div className="w-12 h-12 rounded-2xl bg-mousse-800 flex items-center justify-center mb-8 border border-mousse-600/30">
+                            <Wallet className="w-6 h-6 text-creme" />
+                        </div>
+                        <h3 className="font-display text-2xl font-semibold text-creme mb-3">Trésorerie claire</h3>
+                        <p className="text-creme/60 font-body mb-8">
+                            Rapprochement automatique de vos paiements Mobile Money. Visualisez vos créances et relancez en un clic.
+                        </p>
+                        <div className="mt-auto">
+                            <TelemetryTypewriter />
+                        </div>
+                    </div>
+
+                    {/* Feature 3 */}
+                    <div className="feature-block feature-card glass-card p-8 flex flex-col">
+                        <div className="w-12 h-12 rounded-2xl bg-argile flex items-center justify-center mb-8 shadow-lg shadow-argile/20">
+                            <TrendingUp className="w-6 h-6 text-creme" />
+                        </div>
+                        <h3 className="font-display text-2xl font-semibold text-creme mb-3">Score de Crédit</h3>
+                        <p className="text-creme/60 font-body mb-8">
+                            Après 3 mois, votre historique génère un score de fiabilité certifié, prêt à être partagé avec nos partenaires financiers.
+                        </p>
+                        <div className="mt-auto">
+                            <ProtocolScheduler />
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>

@@ -1,112 +1,73 @@
-import { Logo } from './ui/Logo';
+import React from 'react';
+import { Link } from 'react-router-dom';
 
-const Footer = () => {
+const Footer: React.FC = () => {
     return (
-        <footer className="relative z-10 border-t border-white/5 pt-16 pb-8 px-4">
-            <div className="max-w-6xl mx-auto">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+        <footer className="bg-charbon-950 pt-20 pb-10 rounded-t-[4rem] relative z-10 border-t border-white/5">
+            <div className="container mx-auto px-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 mb-16">
+                    
                     {/* Brand */}
-                    <div className="col-span-2 md:col-span-1">
-                        <div className="flex items-center gap-2.5 mb-4">
-                            <div
-                                className="w-7 h-7 flex items-center justify-center"
-                                style={{
-                                    background: 'linear-gradient(135deg, #00FFA3, #00CC82)',
-                                    borderRadius: '8px',
-                                }}
-                            >
-                                <Logo variant="icon" size={40} theme="light" />
-                            </div>
-                            <span
-                                className="text-sm font-semibold tracking-tight"
-                                style={{ fontFamily: 'Space Grotesk, sans-serif' }}
-                            >
-                                NEXUS
-                            </span>
-                        </div>
-                        <p className="text-xs text-white/40 leading-relaxed max-w-[200px]">
-                            La plateforme de gestion commerciale conçue pour les entrepreneurs africains.
+                    <div className="lg:col-span-1">
+                        <Link to="/" className="flex items-center gap-3 mb-6">
+                            <svg width="24" height="24" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                                <g fill="#F2F0E9">
+                                    <polygon points="60,8 90,60 60,55" />
+                                    <polygon points="112,60 60,90 65,60" />
+                                    <polygon points="60,112 30,60 60,65" />
+                                    <polygon points="8,60 60,30 55,60" />
+                                </g>
+                            </svg>
+                            <span className="font-display font-semibold tracking-[0.2em] text-xl text-creme">NEXUS</span>
+                        </Link>
+                        <p className="text-creme/50 text-sm leading-relaxed max-w-xs">
+                            L'intelligence financière des commerçants africains. Transformez vos données invisibles en historique finançable.
                         </p>
                     </div>
 
-                    {/* Links */}
+                    {/* Nav 1 */}
                     <div>
-                        <h4 className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-4">Produit</h4>
-                        <div className="flex flex-col gap-2.5">
-                            {['Fonctionnalités', 'Modules', 'Tarifs', 'Connexion'].map((link) => (
-                                <a
-                                    key={link}
-                                    href="#"
-                                    className="text-xs text-white/30 hover:text-white/60 transition-colors duration-200 no-underline"
-                                >
-                                    {link}
-                                </a>
-                            ))}
-                        </div>
+                        <h4 className="text-creme font-semibold mb-6 uppercase tracking-wider text-xs">Produit</h4>
+                        <ul className="space-y-4">
+                            <li><a href="#features" className="text-creme/50 hover:text-creme transition-colors text-sm">Fonctionnalités</a></li>
+                            <li><a href="#protocol" className="text-creme/50 hover:text-creme transition-colors text-sm">Protocole</a></li>
+                            <li><a href="#pricing" className="text-creme/50 hover:text-creme transition-colors text-sm">Tarifs</a></li>
+                            <li><Link to="/login" className="text-creme/50 hover:text-creme transition-colors text-sm">Connexion</Link></li>
+                        </ul>
                     </div>
 
+                    {/* Légal */}
                     <div>
-                        <h4 className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-4">Ressources</h4>
-                        <div className="flex flex-col gap-2.5">
-                            {['Guide de démarrage', 'Tutoriels vidéo', 'Blog', 'FAQ'].map((link) => (
-                                <a
-                                    key={link}
-                                    href="#"
-                                    className="text-xs text-white/30 hover:text-white/60 transition-colors duration-200 no-underline"
-                                >
-                                    {link}
-                                </a>
-                            ))}
-                        </div>
+                        <h4 className="text-creme font-semibold mb-6 uppercase tracking-wider text-xs">Légal</h4>
+                        <ul className="space-y-4">
+                            <li><Link to="/terms" className="text-creme/50 hover:text-creme transition-colors text-sm">Conditions générales</Link></li>
+                            <li><Link to="/privacy" className="text-creme/50 hover:text-creme transition-colors text-sm">Politique de confidentialité</Link></li>
+                            <li><Link to="/legal" className="text-creme/50 hover:text-creme transition-colors text-sm">Mentions légales</Link></li>
+                        </ul>
                     </div>
 
+                    {/* Status */}
                     <div>
-                        <h4 className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-4">Contact</h4>
-                        <div className="flex flex-col gap-2.5">
-                            {['Nous écrire', 'WhatsApp', 'support@nexus-app.com'].map((link) => (
-                                <a
-                                    key={link}
-                                    href="#"
-                                    className="text-xs text-white/30 hover:text-white/60 transition-colors duration-200 no-underline"
-                                >
-                                    {link}
-                                </a>
-                            ))}
+                        <h4 className="text-creme font-semibold mb-6 uppercase tracking-wider text-xs">Statut</h4>
+                        <div className="glass-card p-4 inline-block border-white/5 bg-white/[0.02]">
+                            <div className="flex items-center gap-3">
+                                <div className="relative flex h-3 w-3">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                                </div>
+                                <span className="text-sm text-creme/80 font-mono">Système Opérationnel</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Bottom bar */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-white/5">
-                    <div className="text-[11px] text-white/20">
-                        © 2026 NEXUS — Commerce Intelligence pour entrepreneurs africains
+                <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
+                    <p className="text-creme/40 text-xs">
+                        &copy; {new Date().getFullYear()} NEXUS. Tous droits réservés.
+                    </p>
+                    <div className="flex gap-4">
+                        <span className="text-creme/30 text-xs">Fait avec précision pour l'Afrique.</span>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <span
-                            className="text-[10px] font-bold px-2 py-0.5 rounded"
-                            style={{
-                                color: '#00FFA3',
-                                background: 'rgba(0,255,163,0.08)',
-                                border: '1px solid rgba(0,255,163,0.15)',
-                            }}
-                        >
-                            v1.5
-                        </span>
-                        <a href="#" className="text-[11px] text-white/20 hover:text-white/40 no-underline transition-colors">
-                            Mentions légales
-                        </a>
-                        <a href="#" className="text-[11px] text-white/20 hover:text-white/40 no-underline transition-colors">
-                            CGU
-                        </a>
-                    </div>
-                </div>
-
-                {/* System Status */}
-                <div className="flex items-center justify-center gap-2 mt-8">
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#00FFA3', boxShadow: '0 0 6px #00FFA3' }} />
-                    <span className="text-[10px] text-white/20 uppercase tracking-wider">
-                        Tous les systèmes opérationnels
-                    </span>
                 </div>
             </div>
         </footer>
