@@ -36,7 +36,7 @@ const Navbar: React.FC = () => {
             <div className="flex items-center gap-3 lift">
                 <Link to="/" className="flex items-center gap-3 group">
                     <svg width="32" height="32" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" className="transform group-hover:rotate-90 transition-transform duration-500">
-                        <g fill="#2E4036">
+                        <g fill="#F2F0E9">
                             <polygon points="60,8 90,60 60,55" />
                             <polygon points="112,60 60,90 65,60" />
                             <polygon points="60,112 30,60 60,65" />
